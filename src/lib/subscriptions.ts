@@ -3,6 +3,8 @@
 
 import { PayPalError, priceCart, type CartLine } from "./paypal";
 
+export { PayPalError };
+
 const BASE = process.env.PAYPAL_ENV === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 
 let token: { value: string; expires: number } | null = null;
@@ -57,9 +59,28 @@ export interface RefillPlan {
   price: number;
 }
 
-/** Create a billing plan that refills this exact cart every N weeks. */
-export async function createRefillPlan(lines: CartLine[], intervalWeeks: number): Promise<RefillPlan> {
+// One plan per (paid order, cadence): repeat clicks reuse it instead of piling up plans.
+const plans = new Map<string, RefillPlan>();
+
+/** The paid order's lines, read back from PayPal so the refill always matches what was bought. */
+async function paidOrderLines(orderId: string): Promise<CartLine[]> {
+  const order = await api<{
+    status: string;
+    purchase_units?: { items?: { sku?: string; quantity: string }[] }[];
+  }>("GET", `/v2/checkout/orders/${encodeURIComponent(orderId)}`);
+  if (order.status !== "COMPLETED") throw new PayPalError("Refills can only be set up for a completed order.");
+  const items = order.purchase_units?.[0]?.items ?? [];
+  if (!items.length) throw new PayPalError("That order has no items.");
+  return items.map((i) => ({ productId: String(i.sku), quantity: Number(i.quantity) }));
+}
+
+/** Create (or reuse) a billing plan that refills a completed order every N weeks. */
+export async function createRefillPlan(orderId: string, intervalWeeks: number): Promise<RefillPlan> {
   const weeks = Math.max(4, Math.min(16, Math.round(intervalWeeks)));
+  const key = `${orderId}:${weeks}`;
+  const cached = plans.get(key);
+  if (cached) return cached;
+  const lines = await paidOrderLines(orderId);
   const { items, total } = priceCart(lines);
   const plan = await api<{ id: string }>("POST", "/v1/billing/plans", {
     product_id: await refillProduct(),
@@ -80,7 +101,9 @@ export async function createRefillPlan(lines: CartLine[], intervalWeeks: number)
     ],
     payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 1 },
   });
-  return { planId: plan.id, intervalWeeks: weeks, price: total };
+  const created = { planId: plan.id, intervalWeeks: weeks, price: total };
+  plans.set(key, created);
+  return created;
 }
 
 export interface SubscriptionStatus {

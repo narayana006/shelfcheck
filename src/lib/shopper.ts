@@ -30,6 +30,20 @@ export interface Cart {
   orderId: string;
   /** The agent's proposed refill cadence for this routine (offered after payment). */
   refill?: { intervalWeeks: number; reason: string };
+  /** Budget parsed from the request and enforced in code, if one was given. */
+  budget: number | null;
+  /** Products the fit gate ruled out for this shopper, with the reason. */
+  rejected: { name: string; reason: string }[];
+}
+
+/** Pull a dollar budget out of the shopper's request ("under $60", "max 45 dollars"). */
+export function parseBudget(request: string): number | null {
+  const m =
+    request.match(/\$\s*(\d+(?:\.\d{1,2})?)/) ??
+    request.match(/(?:under|below|max(?:imum)?|budget(?: of)?|less than|up to)\s*(\d+(?:\.\d{1,2})?)/i) ??
+    request.match(/(\d+(?:\.\d{1,2})?)\s*(?:dollars|usd|bucks)/i);
+  const n = m ? Number(m[1]) : NaN;
+  return Number.isFinite(n) && n >= 5 && n <= 1000 ? n : null;
 }
 
 export type ShopEvent = { type: "step"; text: string } | { type: "cart"; cart: Cart } | { type: "error"; message: string };
@@ -63,6 +77,8 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("The server is missing its ANTHROPIC_API_KEY.");
   let cart: Cart | null = null;
   let refillDone = false;
+  const budget = parseBudget(request);
+  const rejected = new Map<string, { name: string; reason: string }>();
 
   const searchProducts = betaZodTool({
     name: "search_products",
@@ -89,12 +105,18 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
     inputSchema: z.object({ product_ids: z.array(z.string()).min(1).max(12) }),
     run: async ({ product_ids }) => {
       emit({ type: "step", text: `Checking ${product_ids.length} ingredient lists against your skin` });
-      return JSON.stringify(
-        product_ids.map((id) => {
-          const p = getProduct(id);
-          return p ? { id, name: `${p.brand} ${p.name}`, price: p.price, ...fitFor(p, scores) } : { id, error: "not in store" };
-        }),
-      );
+      const rows = product_ids.map((id) => {
+        const p = getProduct(id);
+        if (!p) return { id, error: "not in store" };
+        const f = fitFor(p, scores);
+        if (f.verdict === "caution" && !rejected.has(id)) {
+          const reason = f.aggravates[0] ? `aggravates your ${f.aggravates[0]}` : "poor fit for your skin";
+          rejected.set(id, { name: `${p.brand} ${p.name}`, reason });
+          emit({ type: "step", text: `Ruled out ${p.brand} ${p.name}: ${reason}` });
+        }
+        return { id, name: `${p.brand} ${p.name}`, price: p.price, ...f };
+      });
+      return JSON.stringify(rows);
     },
   });
 
@@ -109,6 +131,7 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
       summary: z.string().describe("One or two sentences on what this routine does for the shopper's measured skin"),
     }),
     run: async ({ lines, summary }) => {
+      if (cart) return `A PayPal order (${cart.orderId}) already exists for this cart. Don't create another.`;
       const items: CartItem[] = [];
       for (const l of lines) {
         const p = getProduct(l.product_id);
@@ -132,8 +155,11 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
       try {
         const cartLines = items.map((i) => ({ productId: i.productId, quantity: i.quantity }));
         const { total } = priceCart(cartLines);
+        if (budget !== null && total > budget) {
+          return `Cart total $${total.toFixed(2)} is over the shopper's $${budget.toFixed(2)} budget by $${(total - budget).toFixed(2)}. Swap or drop items and call again.`;
+        }
         const orderId = await createOrder(cartLines, "ShelfCheck skin-matched routine");
-        cart = { items, total, summary, orderId };
+        cart = { items, total, summary, orderId, budget, rejected: [...rejected.values()] };
         return `PayPal order ${orderId} created for $${total.toFixed(2)}. The shopper will now approve payment.`;
       } catch (e) {
         return e instanceof PayPalError ? e.message : `PayPal error: ${String(e)}`;
@@ -170,7 +196,7 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
     messages: [
       {
         role: "user",
-        content: `Shopper's request: ${request}\n\nMeasured skin (YouCam): ${JSON.stringify(scores)}\nFocus areas: ${focus.join(", ")}`,
+        content: `Shopper's request: ${request}\n${budget !== null ? `Budget (enforced at checkout): $${budget.toFixed(2)}\n` : ""}\nMeasured skin (YouCam): ${JSON.stringify(scores)}\nFocus areas: ${focus.join(", ")}`,
       },
     ],
   });

@@ -1,28 +1,25 @@
 import * as z from "zod/v4";
 import { rateLimited, tooMany } from "@/lib/limit";
-import { PayPalError } from "@/lib/paypal";
-import { createRefillPlan, getSubscription } from "@/lib/subscriptions";
+import { createRefillPlan, getSubscription, PayPalError } from "@/lib/subscriptions";
 
 export const runtime = "nodejs";
 
 const CreateSchema = z.object({
-  lines: z
-    .array(z.object({ productId: z.string().max(20), quantity: z.number().int().min(1).max(5) }))
-    .min(1)
-    .max(8),
+  orderId: z.string().regex(/^[A-Z0-9]{10,25}$/),
   intervalWeeks: z.number().int().min(4).max(16),
 });
 
-/** Create a PayPal billing plan that refills this cart every N weeks. */
+/** Create a PayPal billing plan that refills a completed order every N weeks. */
 export async function POST(request: Request) {
   const parsed = CreateSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid refill request." }, { status: 400 });
   if (rateLimited(request, "refill", 10)) return tooMany();
   try {
-    return Response.json(await createRefillPlan(parsed.data.lines, parsed.data.intervalWeeks));
+    return Response.json(await createRefillPlan(parsed.data.orderId, parsed.data.intervalWeeks));
   } catch (e) {
     console.error(e);
-    return Response.json({ error: e instanceof PayPalError ? "PayPal couldn't set up the refill plan." : "Refill setup failed." }, { status: 502 });
+    const message = e instanceof PayPalError && e.message.startsWith("Refills") ? e.message : "PayPal couldn't set up the refill plan.";
+    return Response.json({ error: message }, { status: 502 });
   }
 }
 

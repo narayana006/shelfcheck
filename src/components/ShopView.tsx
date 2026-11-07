@@ -45,10 +45,34 @@ function CartView({ cart, clientId, onPaid }: { cart: Cart; clientId: string | n
           ))}
         </ul>
         <div className="mt-2 flex items-baseline justify-between border-t border-line pt-3">
-          <span className="text-sm text-muted">Total</span>
+          <span className="text-sm text-muted">
+            Total
+            {cart.budget !== null && <> · ${cart.total.toFixed(2)} of your ${cart.budget.toFixed(2)} budget</>}
+          </span>
           <span className="font-display text-3xl tabular-nums">${cart.total.toFixed(2)}</span>
         </div>
       </Card>
+
+      {cart.rejected.length > 0 && (
+        <Card>
+          <Eyebrow>Considered and ruled out · {cart.rejected.length}</Eyebrow>
+          <ul className="mt-3 grid gap-2 text-sm">
+            {cart.rejected.map((r) => (
+              <li key={r.name} className="flex items-start gap-2">
+                <span className="text-focus">✕</span>
+                <span>
+                  {r.name}
+                  <span className="text-muted"> — {r.reason}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted">
+            These checks are code, not the AI&apos;s opinion: the checkout refuses any product that aggravates a weak spot or
+            breaks your budget.
+          </p>
+        </Card>
+      )}
 
       <Card>
         <Eyebrow>Approve & pay</Eyebrow>
@@ -101,10 +125,7 @@ function RefillCard({ cart, clientId }: { cart: Cart; clientId: string | null })
       const res = await fetch("/api/paypal/refill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lines: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-          intervalWeeks,
-        }),
+        body: JSON.stringify({ orderId: cart.orderId, intervalWeeks }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);

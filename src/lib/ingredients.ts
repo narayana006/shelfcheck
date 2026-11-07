@@ -110,13 +110,32 @@ export function matchIngredients(labelIngredients: string[]): IngredientMatch[] 
   }
   for (const info of INGREDIENTS) {
     if (matches.some((m) => m.info.key === info.key)) continue;
-    const label = labelIngredients.find((l) => {
+    const index = labelIngredients.findIndex((l) => {
       const n = l.toLowerCase();
-      return info.aliases.some((a) => n.includes(a));
+      return info.aliases.some((a) => wordMatch(n, a)) && !FALSE_FRIENDS.some((f) => n.includes(f));
     });
-    if (label) matches.push({ info, label });
+    if (index < 0) continue;
+    // INCI lists run from highest to lowest concentration. An acid in the last third is
+    // almost always a pH adjuster, not an exfoliant, so it neither helps nor irritates.
+    if (PH_ADJUSTER_KEYS.has(info.key) && index >= labelIngredients.length * (2 / 3)) continue;
+    matches.push({ info, label: labelIngredients[index] });
   }
   return matches;
+}
+
+/** Ingredients whose names contain an active's name but are something else entirely. */
+const FALSE_FRIENDS = ["diazolidinyl urea", "imidazolidinyl urea", "glycyrrhetinic"];
+
+/** Actives that also appear in tiny amounts as pH adjusters. */
+const PH_ADJUSTER_KEYS = new Set(["aha"]);
+
+/** Whole-word match, so "urea" doesn't match inside another word. */
+function wordMatch(text: string, alias: string) {
+  const i = text.indexOf(alias);
+  if (i < 0) return false;
+  const before = text[i - 1];
+  const after = text[i + alias.length];
+  return (!before || !/[a-z]/.test(before)) && (!after || !/[a-z]/.test(after));
 }
 
 export type Verdict = "great" | "good" | "neutral" | "caution";
