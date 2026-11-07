@@ -35,6 +35,25 @@ export interface SkinScan {
   sample?: boolean;
 }
 
+/** A realistic combination-skin profile (redness, pores and acne to work on), for trying the app without a selfie. */
+export const SAMPLE_SCORES: Record<Concern, number> = {
+  acne: 58,
+  redness: 49,
+  oiliness: 62,
+  moisture: 71,
+  pore: 54,
+  texture: 66,
+  wrinkle: 82,
+  age_spot: 74,
+  dark_circle_v2: 61,
+  radiance: 68,
+  firmness: 85,
+};
+
+export function sampleScores(): ConcernScore[] {
+  return CONCERN_KEYS.map((c) => ({ concern: c, score: SAMPLE_SCORES[c] }));
+}
+
 /** Concerns that need the most attention first (lowest scores). */
 export function priorities(scan: SkinScan, n = 3): ConcernScore[] {
   return [...scan.scores].sort((a, b) => a.score - b.score).slice(0, n);

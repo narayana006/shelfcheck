@@ -1,42 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f5f2;
-  --surface: #ffffff;
-  --foreground: #16201d;
-  --muted: #5f6b67;
-  --line: #e4e0da;
-  --brand: #0f5c4d;
-  --brand-soft: #e3efeb;
-  --good: #127a4b;
-  --good-soft: #e1f3e9;
-  --fair: #a16207;
-  --fair-soft: #fbf0d9;
-  --focus: #b4372b;
-  --focus-soft: #f9e3e0;
+  --background: #ffffff;
+  --surface: #f5f5f7;
+  --raised: #ffffff;
+  --foreground: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #d2d2d7;
+  --brand: #0071e3;
+  --brand-soft: #e8f1fc;
+  --good: #1a7f37;
+  --good-soft: #e3f4e8;
+  --fair: #b25000;
+  --fair-soft: #fdf0e3;
+  --focus: #d70015;
+  --focus-soft: #fde7e9;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0e1412;
-    --surface: #161e1b;
-    --foreground: #eef3f1;
-    --muted: #9aa8a3;
-    --line: #26322e;
-    --brand: #5fd0b2;
-    --brand-soft: #173029;
-    --good: #4ade80;
-    --good-soft: #143222;
-    --fair: #fbbf24;
-    --fair-soft: #33290f;
-    --focus: #f87171;
-    --focus-soft: #3a1a17;
+    --background: #000000;
+    --surface: #1d1d1f;
+    --raised: #2c2c2e;
+    --foreground: #f5f5f7;
+    --muted: #a1a1a6;
+    --line: #424245;
+    --brand: #2997ff;
+    --brand-soft: #0b2a4a;
+    --good: #30d158;
+    --good-soft: #0f2e18;
+    --fair: #ff9f0a;
+    --fair-soft: #33240a;
+    --focus: #ff453a;
+    --focus-soft: #3a1412;
   }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-raised: var(--raised);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-line: var(--line);
@@ -49,11 +52,42 @@
   --color-focus: var(--focus);
   --color-focus-soft: var(--focus-soft);
   --font-sans: var(--font-inter);
-  --font-display: var(--font-instrument);
+  --font-display: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.011em;
+}
+
+/* Headline gradient used sparingly, Apple-style. */
+.text-gradient {
+  background: linear-gradient(90deg, #0071e3 0%, #8a3ffc 50%, #e8457d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
 }

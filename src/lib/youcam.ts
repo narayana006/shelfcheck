@@ -205,20 +205,4 @@ export async function tryOnMakeup(fileId: string, look: TryOnLook): Promise<stri
   return results.url;
 }
 
-/** Realistic sample result for building and demoing before a YouCam key is available. */
-export function sampleScores(): ConcernScore[] {
-  const sample: Record<Concern, number> = {
-    acne: 58,
-    redness: 49,
-    oiliness: 62,
-    moisture: 71,
-    pore: 54,
-    texture: 66,
-    wrinkle: 82,
-    age_spot: 74,
-    dark_circle_v2: 61,
-    radiance: 68,
-    firmness: 85,
-  };
-  return CONCERN_KEYS.map((c) => ({ concern: c, score: sample[c] }));
-}
+export { sampleScores } from "./skin";

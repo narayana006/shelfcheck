@@ -2,87 +2,113 @@
 
 import { useEffect, useState } from "react";
 import { CheckView } from "@/components/CheckView";
+import { Hero } from "@/components/Hero";
 import { ProgressView } from "@/components/ProgressView";
 import { ShopView } from "@/components/ShopView";
 import { SkinView } from "@/components/SkinView";
-import { store, type SavedCheck } from "@/lib/client";
-import type { SkinScan } from "@/lib/skin";
+import { newId, store, type SavedCheck } from "@/lib/client";
+import { sampleScores, type SkinScan } from "@/lib/skin";
 
-type Tab = "skin" | "check" | "shop" | "progress";
+type Tab = "shop" | "skin" | "check" | "progress";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "skin", label: "My skin" },
-  { id: "check", label: "Check" },
   { id: "shop", label: "Shop" },
+  { id: "skin", label: "My skin" },
+  { id: "check", label: "Check a product" },
   { id: "progress", label: "Progress" },
 ];
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>("skin");
+  const [tab, setTab] = useState<Tab>("shop");
   const [scans, setScans] = useState<SkinScan[]>([]);
   const [checks, setChecks] = useState<SavedCheck[]>([]);
+  const [ready, setReady] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
-    const s = store.scans();
-    setScans(s);
+    setScans(store.scans());
     setChecks(store.checks());
-    if (s.length) setTab("check");
+    setReady(true);
   }, []);
 
   const latest = scans[0] ?? null;
 
-  return (
-    <div className="mx-auto flex min-h-dvh max-w-xl flex-col px-4">
-      <header className="flex items-center justify-between py-4">
-        <span className="text-base font-semibold tracking-tight">
-          Shelf<span className="text-brand">Check</span>
-        </span>
-        <span className="text-xs text-muted">Skin AI by YouCam</span>
-      </header>
+  function addScan(s: SkinScan) {
+    const next = [s, ...scans];
+    setScans(next);
+    store.saveScans(next);
+    setScanning(false);
+    setTab("shop");
+  }
 
-      <main className="flex-1 pb-28">
-        {tab === "skin" && (
-          <SkinView
-            latest={latest}
-            onScan={(s) => {
-              const next = [s, ...scans];
-              setScans(next);
-              store.saveScans(next);
-            }}
-          />
-        )}
-        {tab === "check" && (
+  function useSample() {
+    addScan({ id: newId(), takenAt: new Date().toISOString(), scores: sampleScores(), tone: { skin: "#c99a7e" }, sample: true });
+  }
+
+  if (!ready) return <div className="min-h-dvh" />;
+
+  if (!latest && !scanning) {
+    return <Hero onScan={() => setScanning(true)} onSample={useSample} />;
+  }
+
+  return (
+    <div className="min-h-dvh">
+      <nav className="sticky top-0 z-20 border-b border-line/50 bg-background/72 backdrop-blur-xl backdrop-saturate-150">
+        <div className="mx-auto flex h-12 max-w-3xl items-center gap-6 px-4">
+          <span className="shrink-0 text-[17px] font-semibold tracking-tight">ShelfCheck</span>
+          <div className="-mx-1 flex flex-1 gap-1 overflow-x-auto">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setScanning(false);
+                  setTab(t.id);
+                }}
+                aria-current={tab === t.id && !scanning ? "page" : undefined}
+                className={`shrink-0 rounded-full px-3 py-1 text-[13px] transition ${
+                  tab === t.id && !scanning ? "bg-foreground text-background" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {latest?.sample && (
+        <div className="bg-brand-soft px-4 py-2 text-center text-[13px] text-brand">
+          You&apos;re using a sample skin profile.{" "}
+          <button onClick={() => setScanning(true)} className="font-semibold underline-offset-4 hover:underline">
+            Scan your own skin ›
+          </button>
+        </div>
+      )}
+
+      <main className="mx-auto max-w-3xl px-4 pb-24 pt-8 sm:pt-12">
+        {scanning || tab === "skin" ? (
+          <SkinView latest={scanning ? null : latest} onScan={addScan} />
+        ) : tab === "shop" ? (
+          <ShopView scan={latest} goScan={() => setScanning(true)} />
+        ) : tab === "check" ? (
           <CheckView
             scan={latest}
             history={checks}
-            goScan={() => setTab("skin")}
+            goScan={() => setScanning(true)}
             onCheck={(c) => {
               const next = [c, ...checks];
               setChecks(next);
               store.saveChecks(next);
             }}
           />
+        ) : (
+          <ProgressView scans={scans} />
         )}
-        {tab === "shop" && <ShopView scan={latest} goScan={() => setTab("skin")} />}
-        {tab === "progress" && <ProgressView scans={scans} />}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 border-t border-line bg-surface/90 backdrop-blur">
-        <div className="mx-auto flex max-w-xl px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-full py-2.5 text-sm font-medium transition ${
-                tab === t.id ? "bg-brand-soft text-brand" : "text-muted hover:text-foreground"
-              }`}
-              aria-current={tab === t.id ? "page" : undefined}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </nav>
+      <footer className="border-t border-line/50 py-8 text-center text-xs text-muted">
+        Demo store in PayPal sandbox · not affiliated with the brands shown · not medical advice
+      </footer>
     </div>
   );
 }

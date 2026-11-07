@@ -61,7 +61,7 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
       <div className="grid gap-5">
         {picker}
         <div className="pt-4">
-          <h1 className="font-display text-5xl leading-[1.05]">Know what your skin needs before you buy.</h1>
+          <h1 className="text-5xl font-semibold leading-[1.05] tracking-[-0.03em] sm:text-6xl">Know what your skin needs before you buy.</h1>
           <p className="mt-4 text-muted">
             One selfie gives you an AI skin analysis across 11 concerns. Then snap any product&apos;s ingredient list in the
             store, and ShelfCheck tells you if it fits <em>your</em> skin.
@@ -103,7 +103,7 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
       <Card>
         <Eyebrow>Your skin · {new Date(latest.takenAt).toLocaleDateString()}</Eyebrow>
         <div className="mt-3 flex items-end gap-3">
-          <span className="font-display text-6xl leading-none">{overall}</span>
+          <span className="text-7xl font-semibold leading-none tracking-[-0.04em]">{overall}</span>
           <span className="pb-1.5 text-sm text-muted">overall skin score</span>
         </div>
         <div className="mt-5">

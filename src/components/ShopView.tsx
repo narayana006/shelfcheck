@@ -4,7 +4,7 @@ import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { useEffect, useState } from "react";
 import type { CaptureResult } from "@/lib/paypal";
 import type { Cart, ShopEvent } from "@/lib/shopper";
-import type { SkinScan } from "@/lib/skin";
+import { CONCERNS, priorities, type SkinScan } from "@/lib/skin";
 import { Button, Card, ErrorNote, Eyebrow, Spinner, VerdictPill } from "./ui";
 
 const IDEAS = ["Build me a full routine under $60", "Something for my focus areas, under $30", "Just the best sunscreen for my skin"];
@@ -16,12 +16,12 @@ function CartView({ cart, clientId, onPaid }: { cart: Cart; clientId: string | n
       <Card>
         <Eyebrow>Your skin-matched cart</Eyebrow>
         <p className="mt-2 text-sm leading-relaxed">{cart.summary}</p>
-        <ul className="mt-4 divide-y divide-line">
+        <ul className="mt-4 divide-y divide-line/50">
           {cart.items.map((i) => (
             <li key={i.productId} className="flex gap-3 py-3">
               {i.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={i.image} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-line bg-white object-contain" />
+                <img src={i.image} alt="" className="h-14 w-14 shrink-0 rounded-2xl bg-white object-contain" />
               ) : (
                 <div className="h-14 w-14 shrink-0 rounded-xl bg-line" />
               )}
@@ -49,7 +49,7 @@ function CartView({ cart, clientId, onPaid }: { cart: Cart; clientId: string | n
             Total
             {cart.budget !== null && <> · ${cart.total.toFixed(2)} of your ${cart.budget.toFixed(2)} budget</>}
           </span>
-          <span className="font-display text-3xl tabular-nums">${cart.total.toFixed(2)}</span>
+          <span className="text-3xl font-semibold tabular-nums tracking-tight">${cart.total.toFixed(2)}</span>
         </div>
       </Card>
 
@@ -140,7 +140,7 @@ function RefillCard({ cart, clientId }: { cart: Cart; clientId: string | null })
   return (
     <Card>
       <Eyebrow>Never run out</Eyebrow>
-      <p className="mt-2 font-display text-2xl leading-tight">Refill this routine every {intervalWeeks} weeks</p>
+      <p className="mt-2 text-2xl font-semibold leading-tight tracking-tight">Refill this routine every {intervalWeeks} weeks</p>
       <p className="mt-2 text-sm text-muted">{reason}</p>
       <p className="mt-1 text-sm">
         ${cart.total.toFixed(2)} every {intervalWeeks} weeks · cancel anytime in PayPal
@@ -252,7 +252,7 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
   if (paid) {
     return (
       <div className="grid gap-5 pt-4">
-        <h1 className="font-display text-4xl leading-tight">Paid. Your routine is on its way.</h1>
+        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Paid. Your routine is on its way.</h1>
         <Card>
           <Eyebrow>PayPal receipt</Eyebrow>
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
@@ -281,11 +281,23 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
   return (
     <div className="grid gap-5">
       <div className="pt-4">
-        <h1 className="font-display text-4xl leading-tight">Your skin-aware shopper</h1>
-        <p className="mt-2 text-sm text-muted">
-          Tell it what you need. It checks every ingredient list against your scan, builds the cart and sets up PayPal checkout. You
-          approve the payment.
+        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">
+          What should we get
+          <br />
+          <span className="text-gradient">for your skin?</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-lg text-muted">
+          Tell the shopper what you need. It reads every ingredient list against your scan, keeps to your budget and sets up
+          PayPal checkout. You approve the payment.
         </p>
+        <div className="mt-5 flex flex-wrap items-center gap-2 text-[13px]">
+          <span className="text-muted">Shopping for</span>
+          {priorities(scan, 3).map((c) => (
+            <span key={c.concern} className="rounded-full bg-surface px-3 py-1 font-medium">
+              {CONCERNS[c.concern]} <span className="text-muted">{c.score}</span>
+            </span>
+          ))}
+        </div>
       </div>
 
       {!running && (
@@ -299,7 +311,7 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
           />
           <div className="mt-3 flex flex-wrap gap-2">
             {IDEAS.map((i) => (
-              <button key={i} onClick={() => run(i)} className="rounded-full border border-line px-3 py-1.5 text-xs hover:border-brand">
+              <button key={i} onClick={() => run(i)} className="rounded-full bg-raised px-4 py-2 text-[13px] shadow-sm ring-1 ring-line/40 transition hover:ring-brand">
                 {i}
               </button>
             ))}

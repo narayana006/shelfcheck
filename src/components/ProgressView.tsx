@@ -20,7 +20,7 @@ export function ProgressView({ scans }: { scans: SkinScan[] }) {
   if (scans.length < 2) {
     return (
       <div className="grid gap-5 pt-4">
-        <h1 className="font-display text-4xl leading-tight">Is it working?</h1>
+        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Is it working?</h1>
         <Card>
           <p className="text-sm text-muted">
             Rescan once a week in the same light. ShelfCheck charts every concern so you can see whether your routine is
@@ -42,14 +42,14 @@ export function ProgressView({ scans }: { scans: SkinScan[] }) {
   return (
     <div className="grid gap-5 pt-4">
       <div>
-        <h1 className="font-display text-4xl leading-tight">Is it working?</h1>
+        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Is it working?</h1>
         <p className="mt-2 text-sm text-muted">
           {chrono.length} scans since {new Date(first.takenAt).toLocaleDateString()}
         </p>
       </div>
       <Card>
         <Eyebrow>Change since your first scan</Eyebrow>
-        <ul className="mt-2 divide-y divide-line">
+        <ul className="mt-2 divide-y divide-line/50">
           {CONCERN_KEYS.map((c) => {
             const series = chrono.map((s) => scoreOf(s, c)).filter((v): v is number => v !== undefined);
             if (series.length < 2) return null;

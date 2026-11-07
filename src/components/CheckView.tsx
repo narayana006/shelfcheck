@@ -21,7 +21,7 @@ function ResultView({ r, scan }: { r: CheckResult; scan: SkinScan }) {
         <div className="flex items-start gap-4">
           {product.image && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.image} alt="" className="h-16 w-16 shrink-0 rounded-xl border border-line bg-white object-contain" />
+            <img src={product.image} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-white object-contain" />
           )}
           <div className="min-w-0 flex-1">
             <Eyebrow>{[product.brand, product.product_type].filter(Boolean).join(" · ") || "Product"}</Eyebrow>
@@ -29,7 +29,7 @@ function ResultView({ r, scan }: { r: CheckResult; scan: SkinScan }) {
           </div>
           <VerdictPill verdict={fit.verdict} />
         </div>
-        <p className="mt-4 font-display text-3xl leading-tight">{explanation.headline}</p>
+        <p className="mt-4 text-3xl font-semibold leading-tight tracking-tight">{explanation.headline}</p>
         <p className="mt-3 text-sm leading-relaxed">{explanation.summary}</p>
         <p className="mt-3 rounded-2xl bg-brand-soft p-3 text-sm">
           <span className="font-semibold text-brand">How to use · </span>
@@ -43,7 +43,7 @@ function ResultView({ r, scan }: { r: CheckResult; scan: SkinScan }) {
       {fit.impacts.length > 0 && (
         <Card>
           <Eyebrow>For your skin</Eyebrow>
-          <ul className="mt-3 divide-y divide-line">
+          <ul className="mt-3 divide-y divide-line/50">
             {fit.impacts.map((i) => (
               <li key={i.concern} className="flex items-start justify-between gap-3 py-3 text-sm">
                 <div>
@@ -203,7 +203,7 @@ export function CheckView({
         }}
       />
       <div className="pt-4">
-        <h1 className="font-display text-4xl leading-tight">Will it work for you?</h1>
+        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Will it work for you?</h1>
         <p className="mt-2 text-sm text-muted">Scan the barcode of any skincare product, or snap its ingredient list.</p>
       </div>
 
@@ -276,7 +276,7 @@ export function CheckView({
       {!result && history.length > 0 && (
         <Card>
           <Eyebrow>Recently checked</Eyebrow>
-          <ul className="mt-2 divide-y divide-line">
+          <ul className="mt-2 divide-y divide-line/50">
             {history.slice(0, 8).map((h) => (
               <li key={h.id}>
                 <button onClick={() => setResult(h.result)} className="flex w-full items-center justify-between gap-3 py-3 text-left">

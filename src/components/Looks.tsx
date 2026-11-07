@@ -100,7 +100,7 @@ export function ShadeCard({ scan }: { scan: SkinScan }) {
       <div className="mt-3 flex items-center gap-4">
         <span className="h-14 w-14 shrink-0 rounded-full border border-line" style={{ background: shade.skin }} />
         <div>
-          <div className="font-display text-2xl leading-tight">
+          <div className="text-2xl font-semibold leading-tight tracking-tight">
             {shade.depth}, {shade.undertone.toLowerCase()} undertone
           </div>
           <div className="text-xs text-muted">Measured skin color {shade.skin.toUpperCase()}</div>
