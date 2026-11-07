@@ -50,6 +50,7 @@ export async function runRecheck(
   scores: ConcernScore[],
   emit: (e: RecheckEvent) => void,
   excludeIds: string[] = [],
+  signal?: AbortSignal,
 ): Promise<RecheckResult> {
   const excluded = new Set(excludeIds);
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("The server is missing its ANTHROPIC_API_KEY.");
@@ -174,7 +175,7 @@ export async function runRecheck(
         content: `Current routine: ${JSON.stringify(current.map((l) => ({ product_id: l.productId, quantity: l.quantity })))}\n${excluded.size ? `Excluded (shopper reacted, refunded; must be replaced): ${JSON.stringify([...excluded])}\n` : ""}Current refill total: $${oldTotal.toFixed(2)} (limit $${cap.toFixed(2)})\nNew skin scan: ${JSON.stringify(scores)}\nFocus areas now: ${focus.join(", ")}`,
       },
     ],
-  });
+  }, { signal });
   for await (const message of runner) {
     if (message.stop_reason === "refusal") throw new Error("The model declined this request.");
     if (result) break;

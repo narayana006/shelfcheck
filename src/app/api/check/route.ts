@@ -2,7 +2,7 @@ import * as z from "zod/v4";
 import { CheckError, checkProduct } from "@/lib/check";
 import { rateLimited, tooMany } from "@/lib/limit";
 import { lookupBarcode } from "@/lib/obf";
-import { CONCERN_KEYS } from "@/lib/skin";
+import { ScoresSchema } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -19,7 +19,7 @@ const BodySchema = z
       .max(14_000_000)
       .optional(),
     text: z.string().min(3).max(5000).optional(),
-    scores: z.array(z.object({ concern: z.enum(CONCERN_KEYS), score: z.number().min(0).max(100) })).min(1),
+    scores: ScoresSchema,
   })
   .refine((b) => b.barcode || b.image || b.text, "Scan a barcode, snap the label or paste the ingredients.");
 

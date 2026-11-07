@@ -36,11 +36,14 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const id = url.searchParams.get("subscription") ?? "";
   const orderId = url.searchParams.get("order") ?? "";
-  const token = url.searchParams.get("token") ?? undefined;
+  // The token travels in a header, not the URL, so it stays out of access logs.
+  const token = request.headers.get("x-order-token") ?? undefined;
   if (!/^I-[A-Z0-9]{8,20}$/.test(id)) return Response.json({ error: "Invalid subscription id." }, { status: 400 });
   if (!verify("order", orderId, token)) return Response.json({ error: "Not your order." }, { status: 403 });
   try {
     const sub = await getSubscription(id);
+    // The subscription must be the one created for this order, not someone else's.
+    if (sub.orderId !== orderId) return Response.json({ error: "That refill doesn't belong to this order." }, { status: 403 });
     return Response.json({ ...sub, token: sign("subscription", id) });
   } catch (e) {
     console.error(e);

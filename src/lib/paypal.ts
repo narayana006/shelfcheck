@@ -115,6 +115,12 @@ export interface CaptureResult {
 }
 
 /** Capture an approved order. */
+/** The order's current PayPal status (e.g. APPROVED, COMPLETED). */
+export async function orderStatus(orderId: string): Promise<string> {
+  const { result } = await orders().getOrder({ id: orderId });
+  return String(result.status);
+}
+
 export async function captureOrder(orderId: string): Promise<CaptureResult> {
   const { result } = await orders().captureOrder({
     id: orderId,

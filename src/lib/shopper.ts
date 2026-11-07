@@ -38,14 +38,24 @@ export interface Cart {
 
 /** Pull a dollar budget out of the shopper's request ("under $60", "max 45 dollars"). */
 export function parseBudget(request: string): number | null {
-  const amount = String.raw`\$?\s*(\d+(?:\.\d{1,2})?)\s*(?:dollars|usd|bucks)?`;
-  // A budget phrase wins over any other dollar amount ("I have a $30 cleanser, routine under $60" → 60).
-  const phrased = request.match(new RegExp(String.raw`(?:under|below|max(?:imum)?|budget(?:\s+of)?|less than|up to|no more than|spend)\s*` + amount, "i"));
+  const ok = (n: number) => Number.isFinite(n) && n >= 5 && n <= 1000;
+  const phrase = String.raw`(?:under|below|max(?:imum)?|budget(?:\s+of)?|less than|up to|no more than|spend)`;
+  const re = new RegExp(phrase + String.raw`\s*(\$)?\s*(\d+(?:\.\d{1,2})?)\s*(dollars|usd|bucks)?`, "gi");
+  const hits = [...request.matchAll(re)].map((m) => ({
+    n: Number(m[2]),
+    money: Boolean(m[1] || m[3]),
+    // "under 3 products", "less than 10 minutes": a unit word after the number means it isn't money.
+    unit: !m[1] && !m[3] && /^\s*[a-z]/i.test(request.slice((m.index ?? 0) + m[0].length)),
+  }));
+  // A budget phrase with a currency marker wins ("$30 cleanser, routine under $60" -> 60).
+  const money = hits.find((h) => h.money && ok(h.n));
+  if (money) return money.n;
+  const bare = hits.find((h) => !h.unit && ok(h.n));
+  if (bare) return bare.n;
   const dollars = [...request.matchAll(/\$\s*(\d+(?:\.\d{1,2})?)/g)];
   const words = request.match(/(\d+(?:\.\d{1,2})?)\s*(?:dollars|usd|bucks)/i);
-  const raw = phrased?.[1] ?? (dollars.length === 1 ? dollars[0][1] : words?.[1]);
-  const n = raw ? Number(raw) : NaN;
-  return Number.isFinite(n) && n >= 5 && n <= 1000 ? n : null;
+  const n = Number(dollars.length === 1 ? dollars[0][1] : (words?.[1] ?? NaN));
+  return ok(n) ? n : null;
 }
 
 export type ShopEvent = { type: "step"; text: string } | { type: "cart"; cart: Cart } | { type: "error"; message: string };
@@ -75,7 +85,12 @@ export function fitFor(p: CatalogProduct, scores: ConcernScore[]) {
   };
 }
 
-export async function runShopper(request: string, scores: ConcernScore[], emit: (e: ShopEvent) => void): Promise<Cart> {
+export async function runShopper(
+  request: string,
+  scores: ConcernScore[],
+  emit: (e: ShopEvent) => void,
+  signal?: AbortSignal,
+): Promise<Cart> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("The server is missing its ANTHROPIC_API_KEY.");
   let cart: Cart | null = null;
   let refillDone = false;
@@ -137,6 +152,8 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
       summary: z.string().describe("One or two sentences on what this routine does for the shopper's measured skin"),
     }),
     run: async ({ lines, summary }) => {
+      // The shopper left: never create an order nobody will see.
+      if (signal?.aborted) return "Cancelled: the shopper closed the page.";
       if (cart) return `A PayPal order (${cart.orderId}) already exists for this cart. Don't create another.`;
       const items: CartItem[] = [];
       for (const l of lines) {
@@ -209,7 +226,7 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
         content: `Shopper's request: ${request}\n${budget !== null ? `Budget (enforced at checkout): $${budget.toFixed(2)}\n` : ""}\nMeasured skin (YouCam): ${JSON.stringify(scores)}\nFocus areas: ${focus.join(", ")}`,
       },
     ],
-  });
+  }, { signal });
 
   for await (const message of runner) {
     if (message.stop_reason === "refusal") throw new Error("The model declined this request.");

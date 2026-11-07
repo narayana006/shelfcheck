@@ -123,15 +123,28 @@ export interface SubscriptionStatus {
   status: string;
   planId?: string;
   nextBilling?: string;
+  /** The ShelfCheck order this refill belongs to (set when the shopper subscribes). */
+  orderId?: string;
 }
 
 /** Verify a subscription the shopper approved in PayPal. */
 export async function getSubscription(id: string): Promise<SubscriptionStatus> {
-  const s = await api<{ id: string; status: string; plan_id?: string; billing_info?: { next_billing_time?: string } }>(
+  const s = await api<{ id: string; status: string; plan_id?: string; custom_id?: string; billing_info?: { next_billing_time?: string } }>(
     "GET",
     `/v1/billing/subscriptions/${encodeURIComponent(id)}`,
   );
-  return { id: s.id, status: s.status, planId: s.plan_id, nextBilling: s.billing_info?.next_billing_time };
+  return { id: s.id, status: s.status, planId: s.plan_id, nextBilling: s.billing_info?.next_billing_time, orderId: s.custom_id };
+}
+
+/** A plan's per-cycle price, read from PayPal. */
+export async function planPrice(planId: string): Promise<number> {
+  const p = await api<{ billing_cycles?: { pricing_scheme?: { fixed_price?: { value: string } } }[] }>(
+    "GET",
+    `/v1/billing/plans/${encodeURIComponent(planId)}`,
+  );
+  const v = Number(p.billing_cycles?.[0]?.pricing_scheme?.fixed_price?.value);
+  if (!Number.isFinite(v)) throw new PayPalError("Couldn't read the refill plan's price.");
+  return v;
 }
 
 /**

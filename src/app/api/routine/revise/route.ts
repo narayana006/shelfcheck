@@ -1,10 +1,11 @@
 import * as z from "zod/v4";
 import { rateLimited, tooMany } from "@/lib/limit";
 import { getProduct } from "@/lib/catalog";
+import { priceCart } from "@/lib/paypal";
 import { fitFor } from "@/lib/shopper";
 import { verify } from "@/lib/sign";
-import { CONCERN_KEYS } from "@/lib/skin";
-import { getSubscription, PayPalError, planForLines, reviseSubscription } from "@/lib/subscriptions";
+import { ScoresSchema } from "@/lib/schemas";
+import { getSubscription, PayPalError, planForLines, planPrice, reviseSubscription } from "@/lib/subscriptions";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ const BodySchema = z.object({
     .array(z.object({ productId: z.string().regex(/^\d{8,14}$/), quantity: z.number().int().min(1).max(5) }))
     .min(1)
     .max(8),
-  scores: z.array(z.object({ concern: z.enum(CONCERN_KEYS), score: z.number().min(0).max(100) })).min(1),
+  scores: ScoresSchema,
 });
 
 /**
@@ -43,6 +44,12 @@ export async function POST(request: Request) {
   try {
     const sub = await getSubscription(subscriptionId);
     if (sub.status !== "ACTIVE") return Response.json({ error: "Only an active refill can be changed." }, { status: 400 });
+    // Same cap the agent works under: a swapped routine can cost at most 15% more than today's refill.
+    const current = sub.planId ? await planPrice(sub.planId) : null;
+    const { total } = priceCart(lines);
+    if (current === null || total > current * 1.15 + 0.005) {
+      return Response.json({ error: "That change costs more than 15% over your current refill." }, { status: 400 });
+    }
     const plan = await planForLines(lines, intervalWeeks);
     const origin = new URL(request.url).origin;
     const { approveUrl } = await reviseSubscription(subscriptionId, plan.planId, `${origin}/?revised=${subscriptionId}`);

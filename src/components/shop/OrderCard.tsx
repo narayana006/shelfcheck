@@ -19,8 +19,8 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 }
 
 async function fetchSubscription(order: SavedOrder, id: string) {
-  const qs = new URLSearchParams({ subscription: id, order: order.orderId, token: order.token ?? "" });
-  const res = await fetch(`/api/paypal/refill?${qs}`);
+  const qs = new URLSearchParams({ subscription: id, order: order.orderId });
+  const res = await fetch(`/api/paypal/refill?${qs}`, { headers: { "x-order-token": order.token ?? "" } });
   const body = await res.json();
   if (!res.ok) throw new Error(body.error);
   return body as { id: string; status: string; planId?: string; nextBilling?: string; token: string };
@@ -77,6 +77,7 @@ function RefillSetup({
                 // Today's order already paid for this routine: the first refill bills one interval from now.
                 actions.subscription.create({
                   plan_id: planId,
+                  custom_id: order.orderId,
                   start_time: new Date(Date.now() + intervalWeeks * 7 * 24 * 3600 * 1000).toISOString(),
                 })
               }

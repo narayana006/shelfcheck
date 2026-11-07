@@ -10,6 +10,10 @@ function secret() {
   return s;
 }
 
+export function signingReady() {
+  return Boolean(process.env.SHELFCHECK_SIGNING_SECRET);
+}
+
 export function sign(kind: "order" | "subscription", id: string) {
   return createHmac("sha256", secret()).update(`${kind}:${id}`).digest("base64url");
 }
