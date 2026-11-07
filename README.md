@@ -1,77 +1,104 @@
 # ShelfCheck
 
-**Will this product actually work for *my* skin?**
+**Skincare that knows your skin.** An AI shopping agent that scans your face, buys only products your skin can use, stays on your budget, and checks out with PayPal. You approve every dollar.
 
-People don't think about their skin in the abstract. They think about it standing in a store aisle, holding a $40 serum. ShelfCheck answers that moment with data about *your* face, not a generic skin type quiz.
+> Try it without a selfie: open the app and choose **Try it with a sample skin**.
 
-1. **Scan your skin once.** One selfie runs **YouCam AI Skin Analysis** (11 measured concerns) and the **YouCam Facial Color Tones Analyzer** (measured skin color) on the same upload.
-2. **Scan any product's barcode.** ShelfCheck pulls the real ingredient list from **Open Beauty Facts**, flags the **26 EU-listed fragrance allergens**, and scores the product against *your* measured concerns: Great fit, Good fit, Neutral or Think twice. No barcode match? Snap or paste the ingredient list.
-3. **See it working.** For a good match, **YouCam AI Skin Simulation** shows your own face with the concerns that product targets improved, in a before/after slider.
-4. **Find your shade and try it on.** Your measured skin color becomes a depth + undertone shade match and lip colors that suit you, applied to your selfie with **YouCam AI Makeup Virtual Try-On**. Skin AI and VTO, working as one.
-5. **Let the shopper buy it for you.** Tell ShelfCheck's agent "build me a routine under $60". It searches the store, checks every ingredient list against your scan, refuses anything that would aggravate your weak spots, builds the cart within budget and **creates a PayPal order**. You approve the payment in PayPal Checkout; nothing is charged without you.
-6. **Track whether it's working.** Rescan weekly; ShelfCheck charts every concern over time.
+## The problem
 
-## How YouCam powers it
+People with sensitive, acne-prone or redness-prone skin buy skincare by trial and error. They read marketing claims, not ingredient lists, and a product that makes skin worse is usually opened, unreturnable money lost. An AI agent could shop for them, but nobody should hand an LLM their card and hope it reads labels correctly.
 
-| Step | YouCam API |
+## What ShelfCheck does
+
+1. **Measures your skin.** One selfie runs YouCam AI Skin Analysis: 11 scores (acne, redness, pores, hydration, oiliness, texture, lines, spots, dark circles, radiance, firmness).
+2. **Shops for you.** Ask in plain words: *"Build me a full routine under $60"*. The agent searches the store, checks every ingredient list against your scores, rules out what would aggravate your weak spots, and builds the cart.
+3. **Checks out with PayPal.** The agent creates a PayPal order (Orders v2). You approve it in PayPal Checkout, and the server captures it. Nothing is charged without you.
+4. **Never lets you run out.** The agent proposes a refill cadence ("the serum runs out first, in about 6 weeks"). Opt in with **PayPal Subscriptions**. The plan is built from your completed order and is cancellable anytime in PayPal.
+5. **Plus:** barcode or label check for any product, the 26 EU-listed fragrance allergens flagged, skin simulation of your goal, shade match and makeup try-on.
+
+## Trust: the AI chooses, code enforces
+
+```mermaid
+flowchart LR
+  U["Shopper: 'routine under $60'"] --> A["Claude agent<br/>(tool use)"]
+  A -- search_products --> C[(Demo catalog<br/>real INCI lists)]
+  A -- check_fit --> G{"Fit gate<br/>(deterministic code)"}
+  G -- verdict + reasons --> A
+  A -- create_checkout --> B{"Budget + fit gate<br/>(code)"}
+  B -- rejects --> A
+  B -- passes --> O["PayPal Orders v2<br/>create order"]
+  O --> P["PayPal Checkout<br/>shopper approves"]
+  P --> K["Capture<br/>must be COMPLETED"]
+  K --> R["propose_refill → PayPal<br/>Subscriptions (opt-in)"]
+```
+
+| Guardrail | Where it lives |
 |---|---|
-| Upload selfie | `POST /s2s/v2.0/file` → pre-signed `PUT` |
-| Analyze | `POST /s2s/v2.0/task/skin-analysis` with 11 `dst_actions` |
-| Results | `GET /s2s/v2.0/task/skin-analysis/{task_id}` (polled with backoff) → `ui_score` per concern |
-| Shade | `POST /s2s/v2.0/task/skin-tone-analysis` → measured `skin_color` → CIELAB depth + undertone |
-| Goal preview | `POST /s2s/v2.0/task/skin-simulation` with the user's focus concerns |
-| Try-on | `POST /s2s/v2.0/task/makeup-vto` with `foundation` (matched shade) + `lip_color` |
+| A product that aggravates a concern you score below 55 on can't be bought | `check_fit` / `create_checkout` in `src/lib/shopper.ts`, scoring in `src/lib/ingredients.ts` |
+| The cart can't exceed your stated budget | `parseBudget()` + `create_checkout` (code, not prompt) |
+| One order per run; retries can't double-create | run-level guard + `PayPal-Request-Id` idempotency keys in `src/lib/paypal.ts` |
+| Prices come only from the server catalog | `priceCart()` in `src/lib/paypal.ts` |
+| Paid means PayPal says `COMPLETED` | `captureOrder()` checks order and capture status |
+| Refills only for completed orders, one plan per order and cadence | `src/lib/subscriptions.ts` reads the order back from PayPal |
+| A human approves every payment and every subscription | PayPal Buttons (`src/components/ShopView.tsx`) |
 
-One upload feeds all four models (the `file_id` is reused), so a scan costs the user one photo.
+Every product the agent rules out is shown in the cart with its reason, so you can see the guardrails working.
 
-YouCam's per-concern scores drive the whole product. Each concern is weighted by how much *this person* needs help with it (`100 − score`), so a dark-spot serum ranks high for someone whose dark-spot score is low and barely registers for someone else. Photo problems YouCam reports (too dark, face too small, out of frame) are turned into specific retake advice.
+## PayPal integration
 
-## How PayPal powers checkout
-
-| Step | PayPal |
+| Capability | API |
 |---|---|
-| Agent finalizes the cart | `create_checkout` tool → **Orders v2 `POST /v2/checkout/orders`** via `@paypal/paypal-server-sdk`, with line items, SKUs and an item-total breakdown priced from the server catalog |
-| Shopper approves | **PayPal JS SDK Buttons** (`@paypal/react-paypal-js`) open the order the agent created |
-| Payment | **Orders v2 capture** on approval; the receipt shows capture id and amount |
+| Order creation by the agent, with line items, SKUs, breakdown, `experience_context` (brand, `PAY_NOW`, shipping from file) | Orders v2 via `@paypal/paypal-server-sdk` |
+| Buyer approval | PayPal JS SDK Buttons via `@paypal/react-paypal-js` |
+| Capture with status verification | Orders v2 capture |
+| Refill product and billing plan, created from the completed order | Catalog Products API + Billing Plans API |
+| Subscription approval and verification | JS SDK subscription buttons + `GET /v1/billing/subscriptions/{id}` |
 
-The agent can propose and prepare a purchase, but only the shopper can approve it: agentic commerce with a human in the loop. Prices are always recomputed on the server; the client never sends amounts. Runs against the PayPal **sandbox** (demo store, illustrative prices).
+Runs against the PayPal **sandbox**: a demo store with illustrative prices and test money only.
 
-## How the match works
+## Why an LLM and not a filter?
 
-- **Product data:** barcode → Open Beauty Facts ingredient list. Otherwise a vision model transcribes the INCI list from a label photo, or the user pastes it.
-- **EU allergens:** the 26 fragrance allergens of EU Regulation 1223/2009 Annex III are detected by exact name and shown separately.
-- **Matching is deterministic:** `src/lib/ingredients.ts` is a curated table of ~27 ingredient families (niacinamide, retinoids, AHAs/BHAs, vitamin C, ceramides, azelaic and tranexamic acid, SPF filters, comedogenic oils, fragrance, drying alcohols…) with the concerns each helps or aggravates. `scoreFit()` combines these with the user's YouCam scores into a fit score and verdict.
-- **Explanation:** the model writes a short, personal summary from those computed facts only, and never overrides the verdict.
+The fit check and budget are plain code. The agent is there for what code can't do well: understanding requests like "something gentle for my redness, I already have a cleanser", trading off price against fit across categories, explaining each choice in terms of your own scores, and deciding a refill cadence from what's in the cart.
 
-## Privacy
+## Tech
 
-Selfies are sent to YouCam for analysis and are not stored on ShelfCheck's server. Scan history, checks and a small copy of the selfie (for before/after views) stay in the browser's local storage on the user's device. Public demo endpoints are rate-limited per visitor so they can't drain API credits.
+- **AI:** Claude (`claude-opus-5-5`) via the Anthropic API with tool use (`search_products`, `check_fit`, `create_checkout`, `propose_refill`); also label reading and explanations.
+- **PayPal:** Orders v2, JS SDK Buttons, Catalog Products, Billing Plans, Subscriptions (sandbox).
+- **YouCam (Perfect Corp):** AI Skin Analysis, Facial Color Tones, Skin Simulation, Makeup Virtual Try-On.
+- **Data:** [Open Beauty Facts](https://world.openbeautyfacts.org) for ingredient lists and product images (ODbL / CC BY-SA); EU Regulation 1223/2009 Annex III for the 26 fragrance allergens.
+- **App:** Next.js 15, TypeScript, Tailwind CSS.
 
 ## Run locally
 
 Requires Node 20+.
 
 ```bash
-cp .env.example .env.local   # add YOUCAM_API_KEY, ANTHROPIC_API_KEY, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET (sandbox)
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000 on your phone (same Wi-Fi) or desktop. Set `YOUCAM_MOCK=1` to use built-in sample skin results without a YouCam key; the UI labels them as sample data.
+Fill `.env.local` with `ANTHROPIC_API_KEY`, `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (sandbox app from developer.paypal.com), and optionally `YOUCAM_API_KEY`. Without a YouCam key, use **Try it with a sample skin**, or set `YOUCAM_MOCK=1`. To pay, log in to the PayPal popup with a sandbox **personal** test account from your PayPal developer dashboard.
 
 ## Project structure
 
-- `src/lib/youcam.ts`: YouCam client: one upload, then skin analysis, tone, simulation and makeup try-on tasks with polling and error mapping
-- `src/lib/tone.ts`: shade matching (sRGB → CIELAB, depth and undertone)
-- `src/lib/obf.ts`: Open Beauty Facts barcode lookup
-- `src/lib/ingredients.ts`: ingredient knowledge base and fit scoring
-- `src/lib/check.ts`: label reading and explanation
-- `src/lib/shopper.ts`: the shopping agent (Claude tool use: search, check fit, create PayPal order)
-- `src/lib/paypal.ts`: PayPal Orders v2 (create, capture) with server-side pricing
-- `src/data/catalog.json`: demo store, 24 real products with Open Beauty Facts ingredient lists
-- `src/app/api/{scan,check,simulate,tryon,shop,paypal/*}`: server routes; API keys never reach the browser
-- `src/components/`: mobile-first UI (My skin, Check, Shop, Progress)
+- `src/lib/shopper.ts`: the shopping agent, its tools and guardrails
+- `src/lib/paypal.ts`: Orders v2 create and capture, server-side pricing
+- `src/lib/subscriptions.ts`: refill plans and subscription verification
+- `src/lib/ingredients.ts`: ingredient knowledge base, EU allergens, fit scoring
+- `src/lib/youcam.ts`, `src/lib/tone.ts`: skin analysis, tone, simulation, try-on
+- `src/data/catalog.json`: demo store (24 real products with Open Beauty Facts ingredient lists)
+- `src/app/api/*`: server routes; API keys never reach the browser
+- `src/components/*`: UI
+
+## Built for the PayPal AI Hackathon
+
+ShelfCheck began in October 2026 as a skin-scan and ingredient-check app (it was never submitted to another competition). During this hackathon we built the shopping agent, the code-enforced budget and fit gates, PayPal Orders checkout, PayPal Subscriptions refills, the redesigned shopper-first experience and the sample-skin mode. See the commit history.
+
+## Notes
+
+Not medical advice; patch-test new products. Demo store only: not affiliated with or endorsed by the brands shown; prices are illustrative.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
