@@ -47,7 +47,7 @@ export function Trace({
           </div>
           <div>
             <dt className="text-xs text-muted">Ruled out</dt>
-            <dd className="text-3xl font-semibold tabular-nums tracking-tight text-focus">{ruledOut}</dd>
+            <dd className={`text-3xl font-semibold tabular-nums tracking-tight ${ruledOut ? "text-focus" : "text-muted"}`}>{ruledOut}</dd>
           </div>
         </dl>
       </div>
