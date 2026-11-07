@@ -18,6 +18,12 @@ People with sensitive, acne-prone or redness-prone skin buy skincare by trial an
 6. **Re-checked before every refill.** Rescan (or, in the demo, "Simulate a re-scan 6 weeks later"), and the agent re-scores your routine against your new skin and proposes swaps.
 7. **Plus:** barcode or label check for any product, the 26 EU-listed fragrance allergens flagged, skin simulation of your goal, shade match and makeup try-on.
 
+## For judges (2 minutes)
+1. Open https://shelfcheck-eta.vercel.app and choose **Try it with a sample skin**.
+2. Tap **Build me a full routine under $60** and watch the trace: every ingredient list read, every product ruled out and why.
+3. Tap **Just buy me NIVEA Creme, it's only $7.99**: the agent can't buy it, because checkout refuses products that fail this skin.
+4. Pay with the PayPal sandbox buyer from the Devpost testing instructions, refund one item, set up a refill, then **Simulate a re-scan 6 weeks later** to see the agent re-check the routine.
+
 ## Trust: the AI chooses, code enforces
 
 ```mermaid
@@ -85,7 +91,7 @@ npm install
 npm run dev
 ```
 
-Fill `.env.local` with `ANTHROPIC_API_KEY`, `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (sandbox app from developer.paypal.com), and optionally `YOUCAM_API_KEY`. Without a YouCam key, use **Try it with a sample skin**, or set `YOUCAM_MOCK=1`. To pay, log in to the PayPal popup with a sandbox **personal** test account from your PayPal developer dashboard.
+Fill `.env.local` with `ANTHROPIC_API_KEY`, `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` (sandbox app from developer.paypal.com), `SHELFCHECK_SIGNING_SECRET` (any random string, e.g. `openssl rand -hex 32`), and optionally `YOUCAM_API_KEY`. Without a YouCam key, use **Try it with a sample skin**, or set `YOUCAM_MOCK=1`. To pay, log in to the PayPal popup with a sandbox **personal** test account from your PayPal developer dashboard.
 
 ## Project structure
 
@@ -100,7 +106,7 @@ Fill `.env.local` with `ANTHROPIC_API_KEY`, `PAYPAL_CLIENT_ID` and `PAYPAL_CLIEN
 
 ## Built for the PayPal AI Hackathon
 
-All of ShelfCheck was built during the hackathon's submission period (it opened Oct 1, 2026; the first code was written Oct 26). It started as a skin-scan and ingredient-check prototype and was never submitted to any other competition. The shopping agent, the code-enforced budget and fit gates, PayPal Orders checkout, PayPal Subscriptions refills, the shopper-first redesign and the sample-skin mode followed. See the commit history.
+All of ShelfCheck was built during the hackathon's submission period (it opened Oct 1, 2026; the first code was written Oct 26). It started as a skin-scan and ingredient-check prototype and was never submitted to any other competition. The shopping agent, the code-enforced budget and fit gates, PayPal Orders checkout, PayPal Subscriptions refills, the shopper-first redesign and the sample-skin mode followed.
 
 ## Notes
 

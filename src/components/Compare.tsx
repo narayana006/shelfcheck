@@ -46,7 +46,7 @@ export function Compare({ before, after, beforeLabel = "Now", afterLabel }: { be
           if (e.key === "ArrowLeft") setPos((p) => Math.max(0, p - 5));
           if (e.key === "ArrowRight") setPos((p) => Math.min(100, p + 5));
         }}
-        className="absolute top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full bg-white text-[#1f1b16] shadow-lg"
+        className="absolute top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full bg-raised text-[#1f1b16] shadow-lg"
         style={{ left: `${pos}%` }}
       >
         <ChevronsLeftRight className="h-5 w-5" aria-hidden />

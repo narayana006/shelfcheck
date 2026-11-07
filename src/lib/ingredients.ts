@@ -40,6 +40,7 @@ export const INGREDIENTS: IngredientInfo[] = [
   { key: "clay", name: "Clay", aliases: ["kaolin", "bentonite"], helps: ["oiliness", "pore"], caution: ["moisture"], note: "Absorbs oil." },
   { key: "spf", name: "Sunscreen filters", aliases: ["zinc oxide", "titanium dioxide", "avobenzone", "octinoxate", "homosalate", "octocrylene", "tinosorb", "bis-ethylhexyloxyphenol methoxyphenyl triazine", "uvinul"], helps: ["age_spot", "wrinkle"], caution: [], note: "Prevents new spots and lines." },
   { key: "pore_clog", name: "Pore-clogging oil", aliases: ["cocos nucifera", "coconut oil", "isopropyl myristate", "isopropyl palmitate", "isopropyl isostearate", "myristyl myristate", "algae extract", "laureth-4"], helps: [], caution: ["acne", "pore"], note: "Rated comedogenic; may clog pores." },
+  { key: "occlusive", name: "Heavy occlusive base", aliases: ["petrolatum", "mineral oil", "paraffinum liquidum", "paraffin", "lanolin"], helps: ["moisture"], caution: ["oiliness"], note: "Seals in water, but a heavy, greasy base for oily skin." },
   { key: "fragrance", name: "Fragrance", aliases: ["parfum", "fragrance", "linalool", "limonene", "geraniol", "citronellol", "eugenol", "lavandula angustifolia", "essential oil", "citrus aurantium", "peppermint", "mentha piperita"], helps: [], caution: ["redness"], note: "A common trigger for sensitive, red skin." },
   { key: "alcohol", name: "Drying alcohol", aliases: ["alcohol denat", "sd alcohol", "denatured alcohol", "isopropyl alcohol"], helps: [], caution: ["moisture", "redness"], note: "Can dry out and irritate skin." },
 ];
@@ -118,6 +119,8 @@ export function matchIngredients(labelIngredients: string[]): IngredientMatch[] 
     // INCI lists run from highest to lowest concentration. An acid in the last third is
     // almost always a pH adjuster, not an exfoliant, so it neither helps nor irritates.
     if (PH_ADJUSTER_KEYS.has(info.key) && index >= labelIngredients.length * (2 / 3)) continue;
+    // A heavy base only matters when it is the base: among the first three ingredients.
+    if (BASE_ONLY_KEYS.has(info.key) && index > 2) continue;
     matches.push({ info, label: labelIngredients[index] });
   }
   return matches;
@@ -128,6 +131,9 @@ const FALSE_FRIENDS = ["diazolidinyl urea", "imidazolidinyl urea", "glycyrrhetin
 
 /** Actives that also appear in tiny amounts as pH adjusters. */
 const PH_ADJUSTER_KEYS = new Set(["aha"]);
+
+/** Ingredients that only count when they make up the product's base. */
+const BASE_ONLY_KEYS = new Set(["occlusive"]);
 
 /** Whole-word match, so "urea" doesn't match inside another word. */
 function wordMatch(text: string, alias: string) {

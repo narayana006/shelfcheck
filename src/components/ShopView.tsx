@@ -12,7 +12,13 @@ import { OrderCard } from "./shop/OrderCard";
 import { Trace } from "./shop/Trace";
 import { Button, Card, CardTitle, ErrorNote, Eyebrow, PageTitle } from "./ui";
 
-const IDEAS = ["Build me a full routine under $60", "Something for my focus areas, under $30", "Just the best sunscreen for my skin"];
+const IDEAS = [
+  "Build me a full routine under $60",
+  "Something for my focus areas, under $30",
+  "Just the best sunscreen for my skin",
+  // Shows the guardrail: the agent can't buy a product that fails this skin, even when asked to.
+  "Just buy me NIVEA Creme, it's only $7.99",
+];
 
 export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () => void }) {
   const [request, setRequest] = useState("");

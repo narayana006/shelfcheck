@@ -6,7 +6,7 @@ import { CONCERNS, priorities, scoreBand, type ConcernScore, type SkinScan } fro
 import { SIMULATABLE } from "@/lib/simulatable";
 import { Camera } from "./Camera";
 import { ShadeCard, SimulationCard } from "./Looks";
-import { Button, Card, ErrorNote, Eyebrow, ScoreBar, Spinner } from "./ui";
+import { Button, Card, ErrorNote, Eyebrow, PageTitle, ScoreBar, Spinner, shortDate } from "./ui";
 
 const CHIP = {
   good: "bg-good-soft text-good",
@@ -48,13 +48,16 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
   if (!latest) {
     return (
       <div className="grid gap-5">
-        <div className="pt-4">
-          <h1 className="pt-6 text-[clamp(40px,7vw,64px)] font-semibold leading-[1.02] text-balance sm:pt-10">Know what your skin needs before you buy.</h1>
-          <p className="mt-4 text-muted">
-            One selfie gives you an AI skin analysis across 11 concerns. Then snap any product&apos;s ingredient list in the
-            store, and ShelfCheck tells you if it fits <em>your</em> skin.
-          </p>
-        </div>
+        <PageTitle
+          lede={
+            <>
+              One selfie gives you an AI skin analysis across 11 concerns. Then snap any product&apos;s ingredient list, and
+              ShelfCheck tells you if it fits <em>your</em> skin.
+            </>
+          }
+        >
+          Know what your skin needs before you buy.
+        </PageTitle>
         <Card>
           <Eyebrow>Step 1 · Skin scan</Eyebrow>
           <p className="mt-2 text-[15px] text-muted">Face a window or bright, even light. Remove glasses and pull hair back.</p>
@@ -74,12 +77,11 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
 
   return (
     <div className="grid gap-5">
-      {latest.sample && (
-        <p className="rounded-2xl bg-fair-soft p-3 text-sm text-fair">Sample results shown. Connect a YouCam API key for a real scan.</p>
-      )}
+      <PageTitle lede={`Scanned ${shortDate(latest.takenAt)}. ShelfCheck weighs every product against your focus areas first.`}>
+        Your skin
+      </PageTitle>
       <Card>
-        <Eyebrow>Your skin · {new Date(latest.takenAt).toLocaleDateString()}</Eyebrow>
-        <h1 className="sr-only">Your skin</h1>
+        <Eyebrow>Overall</Eyebrow>
         <div className="mt-3 flex items-end gap-3">
           <span className="text-7xl font-semibold leading-none tracking-[-0.04em]">{overall}</span>
           <span className="pb-1.5 text-sm text-muted">overall skin score</span>
@@ -93,7 +95,6 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
               </span>
             ))}
           </div>
-          <p className="mt-3 text-sm text-muted">ShelfCheck weighs every product against these first.</p>
         </div>
       </Card>
 
@@ -128,7 +129,7 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
       ) : busy ? (
         <Spinner label="Analyzing your skin…" />
       ) : (
-        <Button variant="secondary" onClick={() => setRescanning(true)}>
+        <Button variant="secondary" onClick={() => setRescanning(true)} className="sm:w-auto sm:justify-self-center">
           Rescan to track progress
         </Button>
       )}

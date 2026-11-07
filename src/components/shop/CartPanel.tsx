@@ -1,15 +1,15 @@
 "use client";
 
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { ShieldX } from "lucide-react";
+import { ChevronDown, ShieldX } from "lucide-react";
 import { useState } from "react";
 import type { CaptureResult } from "@/lib/paypal";
 import type { Cart } from "@/lib/shopper";
 import { CardTitle, ErrorNote, Eyebrow, VerdictPill } from "../ui";
 
-function ProductImage({ src, size = 88 }: { src?: string; size?: number }) {
+function ProductImage({ src, size = 88, className = "" }: { src?: string; size?: number; className?: string }) {
   return (
-    <div className="shrink-0 overflow-hidden rounded-3xl bg-raised p-2" style={{ width: size, height: size }}>
+    <div className={`shrink-0 overflow-hidden rounded-3xl bg-raised p-2 ${className}`} style={{ width: size, height: size }}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" width={size - 16} height={size - 16} loading="lazy" decoding="async" className="block h-full w-full object-contain" />
@@ -34,21 +34,21 @@ export function CartPanel({ cart, clientId, onPaid }: { cart: Cart; clientId: st
         <ul className="mt-6 grid gap-3">
           {cart.items.map((i) => (
             <li key={i.productId} className="flex gap-4 rounded-3xl bg-background/60 p-3 sm:p-4">
-              <ProductImage src={i.image} />
+              <ProductImage src={i.image} className="h-16! w-16! sm:h-[88px]! sm:w-[88px]!" />
               <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
+                <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                  <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">{i.category}</p>
                     <p className="text-[17px] font-semibold leading-snug">
                       {i.brand} {i.name}
                     </p>
                   </div>
-                  <p className="text-[17px] font-semibold tabular-nums">${(i.price * i.quantity).toFixed(2)}</p>
+                  <p className="shrink-0 text-[15px] font-semibold tabular-nums sm:text-[17px]">${(i.price * i.quantity).toFixed(2)}</p>
                 </div>
                 <p className="mt-1 text-[15px] leading-snug text-muted">{i.why}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <VerdictPill verdict={i.verdict} />
-                  {i.allergens.length > 0 && <span className="text-xs text-fair">{i.allergens.length} EU fragrance allergen(s)</span>}
+                  {i.allergens.length > 0 && <span className="text-xs text-fair">{i.allergens.length} EU fragrance {i.allergens.length === 1 ? "allergen" : "allergens"}</span>}
                 </div>
               </div>
             </li>
@@ -100,12 +100,19 @@ export function CartPanel({ cart, clientId, onPaid }: { cart: Cart; clientId: st
       <section className="rise rounded-[28px] bg-surface p-6 sm:p-8">
         <Eyebrow>Approve & pay</Eyebrow>
         <CardTitle>Nothing is charged until you say yes</CardTitle>
-        <p className="mt-2 text-[15px] text-muted">
-          The shopper created PayPal order <span className="font-mono text-[13px]">{cart.orderId}</span>.
-        </p>
+        <p className="mt-2 text-[15px] text-muted">The shopper created a PayPal order for this cart. Review it and pay below.</p>
+        <details className="group mt-1 text-[13px] text-muted">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center hover:text-foreground [&::-webkit-details-marker]:hidden">
+            Details
+            <ChevronDown className="ml-1 h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <p>
+            PayPal order <span className="select-all font-mono">{cart.orderId}</span>
+          </p>
+        </details>
         <div className="mt-5">
           {clientId ? (
-            <PayPalScriptProvider options={{ clientId, currency: "USD", intent: "capture" }}>
+            <PayPalScriptProvider options={{ clientId, currency: "USD", intent: "capture", enableFunding: "venmo,paylater" }}>
               <PayPalButtons
                 style={{ layout: "vertical", shape: "pill", label: "pay", height: 48 }}
                 createOrder={async () => cart.orderId}

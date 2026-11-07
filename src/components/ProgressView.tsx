@@ -1,5 +1,5 @@
 import { CONCERNS, CONCERN_KEYS, type SkinScan } from "@/lib/skin";
-import { Card, Eyebrow } from "./ui";
+import { Button, Card, Eyebrow, PageTitle, shortDate } from "./ui";
 
 function Sparkline({ values }: { values: number[] }) {
   const w = 96;
@@ -16,19 +16,37 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
-export function ProgressView({ scans }: { scans: SkinScan[] }) {
+export function ProgressView({
+  scans,
+  goScan,
+  onSimulate,
+}: {
+  scans: SkinScan[];
+  goScan: () => void;
+  onSimulate: () => void;
+}) {
+  const sampleOnly = scans.length > 0 && scans.every((s) => s.sample);
+  const scanningEnabled = process.env.NEXT_PUBLIC_YOUCAM_DISABLED !== "1";
+
   if (scans.length < 2) {
     return (
-      <div className="grid gap-5 pt-4">
-        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Is it working?</h1>
+      <div className="grid gap-5">
+        <PageTitle lede="Rescan once a week in the same light. ShelfCheck charts every concern so you can see whether your routine is actually changing your skin.">
+          Is it working?
+        </PageTitle>
         <Card>
-          <p className="text-sm text-muted">
-            Rescan once a week in the same light. ShelfCheck charts every concern so you can see whether your routine is
-            actually changing your skin.
-          </p>
-          <p className="mt-3 text-sm">
+          <Eyebrow>Your trend</Eyebrow>
+          <p className="mt-2 text-[17px]">
             {scans.length === 0 ? "No scans yet." : "1 scan so far. Your next scan unlocks your trend."}
           </p>
+          <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap">
+            {scanningEnabled && <Button onClick={goScan}>Rescan</Button>}
+            {sampleOnly && (
+              <Button variant={scanningEnabled ? "secondary" : "primary"} onClick={onSimulate}>
+                Simulate a scan 6 weeks later
+              </Button>
+            )}
+          </div>
         </Card>
       </div>
     );
@@ -40,13 +58,10 @@ export function ProgressView({ scans }: { scans: SkinScan[] }) {
   const scoreOf = (s: SkinScan, c: string) => s.scores.find((x) => x.concern === c)?.score;
 
   return (
-    <div className="grid gap-5 pt-4">
-      <div>
-        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Is it working?</h1>
-        <p className="mt-2 text-sm text-muted">
-          {chrono.length} scans since {new Date(first.takenAt).toLocaleDateString()}
-        </p>
-      </div>
+    <div className="grid gap-5">
+      <PageTitle lede={`${chrono.length} scans since ${shortDate(first.takenAt)}${sampleOnly ? " (sample data)" : ""}.`}>
+        Is it working?
+      </PageTitle>
       <Card>
         <Eyebrow>Change since your first scan</Eyebrow>
         <ul className="mt-2 divide-y divide-line/50">
@@ -69,6 +84,11 @@ export function ProgressView({ scans }: { scans: SkinScan[] }) {
           })}
         </ul>
       </Card>
+      {scanningEnabled && (
+        <Button onClick={goScan} className="sm:w-auto sm:justify-self-center">
+          Rescan
+        </Button>
+      )}
     </div>
   );
 }

@@ -1,15 +1,29 @@
 "use client";
 
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { ArrowRight, CalendarClock, RefreshCw, Undo2 } from "lucide-react";
+import { ArrowRight, CalendarClock, ChevronDown, RefreshCw, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateOrder, type SavedOrder } from "@/lib/client";
 import type { RecheckEvent, RecheckResult } from "@/lib/recheck";
 import { sampleScores, type ConcernScore, type SkinScan } from "@/lib/skin";
 import { postStream } from "@/lib/stream";
-import { Button, CardTitle, ErrorNote, Eyebrow, Spinner } from "../ui";
+import { Button, CardTitle, ErrorNote, Eyebrow, Spinner, shortDate } from "../ui";
 import { ProductImage } from "./CartPanel";
 import { Trace } from "./Trace";
+
+/** PayPal subscription statuses, in words people use. */
+const SUBSCRIPTION_STATUS: Record<string, string> = {
+  ACTIVE: "Active",
+  APPROVAL_PENDING: "Waiting for approval",
+  APPROVED: "Approved",
+  SUSPENDED: "Paused",
+  CANCELLED: "Cancelled",
+  EXPIRED: "Ended",
+};
+
+function statusLabel(status: string): string {
+  return SUBSCRIPTION_STATUS[status] ?? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " ");
+}
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -316,11 +330,8 @@ export function OrderCard({
   return (
     <section className="rise grid gap-5 rounded-[28px] bg-surface p-6 sm:p-8">
       <div>
-        <Eyebrow>
-          Order {order.orderId} · {new Date(order.paidAt).toLocaleDateString()}
-        </Eyebrow>
+        <Eyebrow>Order · {shortDate(order.paidAt)}</Eyebrow>
         <CardTitle>Paid ${order.total.toFixed(2)} with PayPal</CardTitle>
-        {order.captureId && <p className="mt-1 font-mono text-[13px] text-muted">Capture {order.captureId}</p>}
       </div>
 
       <ul className="grid gap-3">
@@ -362,11 +373,11 @@ export function OrderCard({
             <CalendarClock className="mt-1 h-6 w-6 shrink-0 text-good" strokeWidth={1.75} aria-hidden />
             <div>
               <h3 className="text-[19px] font-semibold">
-                Auto-refill {order.subscription.status.toLowerCase()} · every {order.subscription.intervalWeeks} weeks
+                Auto-refill every {order.subscription.intervalWeeks} weeks
               </h3>
               <p className="mt-1 text-[15px] text-muted">
-                {order.subscription.nextBilling ? `Next refill ${new Date(order.subscription.nextBilling).toLocaleDateString()}` : "Scheduled"} ·{" "}
-                <span className="font-mono text-[13px]">{order.subscription.id}</span>
+                {statusLabel(order.subscription.status)} ·{" "}
+                {order.subscription.nextBilling ? `Next refill ${shortDate(order.subscription.nextBilling)}` : "Scheduled"}
               </p>
             </div>
           </div>
@@ -392,6 +403,29 @@ export function OrderCard({
       ) : null}
 
       {error && <ErrorNote>{error}</ErrorNote>}
+
+      <details className="group -mt-2 text-[13px] text-muted">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center hover:text-foreground [&::-webkit-details-marker]:hidden">
+            Payment details
+            <ChevronDown className="ml-1 h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+          <dt>PayPal order</dt>
+          <dd className="min-w-0 break-all select-all font-mono">{order.orderId}</dd>
+          {order.captureId && (
+            <>
+              <dt>Capture</dt>
+              <dd className="min-w-0 break-all select-all font-mono">{order.captureId}</dd>
+            </>
+          )}
+          {order.subscription && (
+            <>
+              <dt>Subscription</dt>
+              <dd className="min-w-0 break-all select-all font-mono">{order.subscription.id}</dd>
+            </>
+          )}
+        </dl>
+      </details>
     </section>
   );
 }

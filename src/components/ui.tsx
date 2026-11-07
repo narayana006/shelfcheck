@@ -113,3 +113,11 @@ export function ErrorNote({ children }: { children: ReactNode }) {
     </p>
   );
 }
+
+/** "Nov 7", or "Nov 7, 2025" when it isn't this year. */
+export function shortDate(iso: string | number | Date): string {
+  const d = new Date(iso);
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return d.toLocaleDateString(undefined, opts);
+}

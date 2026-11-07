@@ -1,5 +1,6 @@
 "use client";
 
+import { ScanBarcode, ScanFace, ShoppingBag, TrendingUp, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CheckView } from "@/components/CheckView";
 import { Hero } from "@/components/Hero";
@@ -12,11 +13,11 @@ import { sampleScores, type SkinScan } from "@/lib/skin";
 
 type Tab = "shop" | "skin" | "check" | "progress";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "shop", label: "Shop" },
-  { id: "skin", label: "My skin" },
-  { id: "check", label: "Check" },
-  { id: "progress", label: "Progress" },
+const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
+  { id: "shop", label: "Shop", icon: ShoppingBag },
+  { id: "skin", label: "My skin", icon: ScanFace },
+  { id: "check", label: "Check", icon: ScanBarcode },
+  { id: "progress", label: "Progress", icon: TrendingUp },
 ];
 
 export default function Home() {
@@ -53,6 +54,23 @@ export default function Home() {
     go("shop");
   }
 
+  /** Sample users: add the same person "six weeks later" so the progress chart has a trend to show. */
+  function simulateLater() {
+    const now = Date.now();
+    const sixWeeksAgo = new Date(now - 42 * 24 * 60 * 60 * 1000).toISOString();
+    const earlier = scans.map((s) => (s.sample ? { ...s, takenAt: sixWeeksAgo } : s));
+    const later: SkinScan = {
+      id: newId(),
+      takenAt: new Date(now).toISOString(),
+      scores: sampleScores("later"),
+      tone: latest?.tone ?? { skin: "#c99a7e" },
+      sample: true,
+    };
+    const next = [later, ...earlier];
+    setScans(next);
+    store.saveScans(next);
+  }
+
   function startWithSample() {
     addScan({ id: newId(), takenAt: new Date().toISOString(), scores: sampleScores(), tone: { skin: "#c99a7e" }, sample: true });
   }
@@ -71,14 +89,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="flex min-h-dvh flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 focus:rounded-full focus:bg-background focus:px-4 focus:py-2">
         Skip to content
       </a>
       <nav aria-label="ShelfCheck" className="sticky top-0 z-30 border-b border-line/40 bg-background/72 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-8">
           <Logo className="shrink-0 text-[19px]" />
-          <div className="no-scrollbar -mr-4 flex flex-1 gap-1 overflow-x-auto pr-4 [mask-image:linear-gradient(to_right,black_85%,transparent)] sm:mr-0 sm:justify-end sm:pr-0 sm:[mask-image:none]">
+          <div className="hidden flex-1 justify-end gap-1 sm:flex">
             {TABS.map((t) => {
               const active = tab === t.id && !scanning;
               return (
@@ -110,7 +128,7 @@ export default function Home() {
         </div>
       )}
 
-      <main id="main" ref={mainRef} tabIndex={-1} className="mx-auto max-w-3xl px-4 pb-28 pt-2 outline-none">
+      <main id="main" ref={mainRef} tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-2 outline-none sm:pb-28">
         {scanning || tab === "skin" ? (
           <SkinView latest={scanning ? null : latest} onScan={addScan} />
         ) : tab === "shop" ? (
@@ -127,13 +145,38 @@ export default function Home() {
             }}
           />
         ) : (
-          <ProgressView scans={scans} />
+          <ProgressView scans={scans} goScan={() => go("skin", true)} onSimulate={simulateLater} />
         )}
       </main>
 
-      <footer className="border-t border-line/40 px-4 py-8 text-center text-xs leading-relaxed text-muted">
-        Demo store in PayPal sandbox · not affiliated with the brands shown · not medical advice
+      <footer className="border-t border-line/40 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-8 text-center text-xs leading-relaxed text-muted sm:pb-8">
+        Demo store in PayPal sandbox · not affiliated with the brands shown · product data from Open Beauty Facts (ODbL) · not medical advice
       </footer>
+
+      <nav
+        aria-label="Tabs"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-line/40 bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(24px)_saturate(1.5)] sm:hidden"
+      >
+        <div className="grid grid-cols-4">
+          {TABS.map((t) => {
+            const active = tab === t.id && !scanning;
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => go(t.id)}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-[11px] font-medium transition-colors ${
+                  active ? "text-brand" : "text-muted active:text-foreground"
+                }`}
+              >
+                <Icon className="h-6 w-6" strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

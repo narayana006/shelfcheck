@@ -104,7 +104,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
           <h1 className="rise mt-4 text-[clamp(52px,10vw,120px)] font-semibold leading-[0.95] tracking-[-0.04em] text-balance">
             Skincare that
             <br />
-            <span className="text-gradient">knows your skin.</span>
+            <span className="text-gradient">knows <span className="whitespace-nowrap">your skin.</span></span>
           </h1>
           <p className="rise mx-auto mt-7 max-w-2xl text-xl leading-snug text-muted text-pretty sm:text-2xl">
             Scan your face once. An AI shopper buys only what your skin can use, stays on budget, and checks out with PayPal.
@@ -118,7 +118,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
         <section aria-label="What the shopper does" className="relative overflow-hidden bg-[linear-gradient(180deg,var(--lavender),var(--blush))] px-4 py-24 sm:py-32">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_40%_at_50%_55%,rgba(255,255,255,0.7),transparent_70%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_40%_at_50%_55%,color-mix(in_srgb,var(--raised)_70%,transparent),transparent_70%)]"
           />
           <div className="relative mx-auto max-w-5xl text-center">
             <h2 className="text-[clamp(36px,6vw,64px)] font-semibold leading-[1.02] text-balance">
@@ -169,7 +169,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
           <section key={title} className={`${TONE[tone]} px-4 py-24 sm:py-32`}>
             <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[1fr_1.2fr]">
               <div>
-                <div className={`text-[clamp(88px,14vw,160px)] font-semibold leading-none tracking-[-0.05em] text-gradient`}>
+                <div className={`text-[clamp(88px,14vw,160px)] font-semibold leading-none tracking-[-0.05em] text-gradient inline-block`}>
                   {stat}
                 </div>
                 <p className={`mt-2 text-lg font-medium text-muted`}>{statLabel}</p>

@@ -6,7 +6,7 @@ import { blobToDataUrl, decodeBarcode, newId, prepareImage, type SavedCheck } fr
 import { SIMULATABLE } from "@/lib/simulatable";
 import { CONCERNS, type SkinScan } from "@/lib/skin";
 import { SimulationCard } from "./Looks";
-import { Button, Card, ErrorNote, Eyebrow, Spinner, VerdictPill } from "./ui";
+import { Button, Card, ErrorNote, Eyebrow, PageTitle, Spinner, VerdictPill, shortDate } from "./ui";
 
 function ResultView({ r, scan }: { r: CheckResult; scan: SkinScan }) {
   const { product, fit, explanation, matches, euAllergens } = r;
@@ -21,7 +21,7 @@ function ResultView({ r, scan }: { r: CheckResult; scan: SkinScan }) {
         <div className="flex items-start gap-4">
           {product.image && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.image} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-white object-contain" />
+            <img src={product.image} alt="" className="h-16 w-16 shrink-0 rounded-2xl bg-raised object-contain" />
           )}
           <div className="min-w-0 flex-1">
             <Eyebrow>{[product.brand, product.product_type].filter(Boolean).join(" · ") || "Product"}</Eyebrow>
@@ -132,13 +132,16 @@ export function CheckView({
 
   if (!scan) {
     return (
-      <Card className="mt-6">
-        <Eyebrow>Step 2 · Check a product</Eyebrow>
-        <p className="mt-2 text-sm text-muted">ShelfCheck compares products with your measured skin, so start with a quick scan.</p>
-        <Button onClick={goScan} className="mt-4 w-full">
-          Scan my skin first
-        </Button>
-      </Card>
+      <div className="grid gap-5">
+        <PageTitle lede="Scan the barcode of any skincare product, or snap its ingredient list.">Will it work for you?</PageTitle>
+        <Card>
+          <Eyebrow>Step 2 · Check a product</Eyebrow>
+          <p className="mt-2 text-sm text-muted">ShelfCheck compares products with your measured skin, so start with a quick scan.</p>
+          <Button onClick={goScan} className="mt-4 w-full">
+            Scan my skin first
+          </Button>
+        </Card>
+      </div>
     );
   }
 
@@ -202,10 +205,7 @@ export function CheckView({
           if (f) run({ image: await blobToDataUrl(await prepareImage(f, 2000)) }, "Reading the label and matching it to your skin…");
         }}
       />
-      <div className="pt-4">
-        <h1 className="pt-6 text-[clamp(40px,7vw,64px)] font-semibold leading-[1.02] text-balance sm:pt-10">Will it work for you?</h1>
-        <p className="mt-2 text-sm text-muted">Scan the barcode of any skincare product, or snap its ingredient list.</p>
-      </div>
+      <PageTitle lede="Scan the barcode of any skincare product, or snap its ingredient list.">Will it work for you?</PageTitle>
 
       {busy ? (
         <Card>
@@ -216,7 +216,7 @@ export function CheckView({
           <Button onClick={() => barcodeInput.current?.click()}>Scan barcode</Button>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="secondary" onClick={() => labelInput.current?.click()}>
-              Snap ingredients
+              Snap label
             </Button>
             <Button variant="secondary" onClick={() => setMode(mode === "paste" ? null : "paste")}>
               Type or paste
@@ -236,7 +236,7 @@ export function CheckView({
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             placeholder="e.g. 3337875597180"
-            className="mt-1 block w-full rounded-lg bg-transparent text-lg tracking-wider"
+            className="mt-2 block w-full rounded-2xl bg-raised px-4 py-3 text-[16px] tracking-wider ring-1 ring-line outline-none! transition-shadow focus:ring-2 focus:ring-brand"
           />
           <Button
             onClick={() => run({ barcode: code }, "Looking up the product and matching it to your skin…")}
@@ -256,7 +256,7 @@ export function CheckView({
             onChange={(e) => setText(e.target.value)}
             rows={5}
             placeholder="Aqua, Niacinamide, Glycerin, …"
-            className="w-full resize-none rounded-lg bg-transparent text-[17px]"
+            className="block w-full resize-none rounded-2xl bg-raised px-4 py-3 text-[16px] ring-1 ring-line outline-none! transition-shadow focus:ring-2 focus:ring-brand"
           />
           <Button
             onClick={() => run({ text }, "Matching these ingredients to your skin…")}
@@ -283,7 +283,7 @@ export function CheckView({
                 <button onClick={() => setResult(h.result)} className="flex w-full items-center justify-between gap-3 py-3 text-left">
                   <span className="min-w-0 truncate text-sm">
                     {h.result.product.product_name || "Scanned product"}
-                    <span className="text-muted"> · {new Date(h.checkedAt).toLocaleDateString()}</span>
+                    <span className="text-muted"> · {shortDate(h.checkedAt)}</span>
                   </span>
                   <VerdictPill verdict={h.result.fit.verdict} />
                 </button>
@@ -293,10 +293,7 @@ export function CheckView({
         </Card>
       )}
 
-      <p className="text-xs text-muted">
-        General guidance based on ingredients and your scan, not medical advice. Patch-test new products. Product data from
-        Open Beauty Facts (ODbL).
-      </p>
+      <p className="text-xs text-muted">Patch-test new products.</p>
     </div>
   );
 }

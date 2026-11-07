@@ -32,6 +32,8 @@ export function Trace({
     .filter((s) => /^(Checking|Re-checking) \d+/.test(s))
     .reduce((n, s) => n + Number(s.match(/\d+/)?.[0] ?? 0), 0);
   const ruledOut = steps.filter((s) => kindOf(s) === "reject").length;
+  const collapsed = !running && steps.length > 8;
+  const list = <StepList steps={steps} running={running} />;
 
   return (
     <section className="rise rounded-[28px] bg-raised p-6 shadow-[0_1px_0_rgba(0,0,0,0.03),0_20px_50px_-30px_rgba(70,50,20,0.35)] sm:p-8">
@@ -52,36 +54,52 @@ export function Trace({
         </dl>
       </div>
 
-      <ol className="relative mt-6 grid gap-4" aria-live="polite" aria-relevant="additions">
-        <span aria-hidden className="absolute bottom-3 left-[15px] top-3 w-0.5 rounded-full bg-gradient-to-b from-brand-fill via-[#8a3ffc] to-[#e8457d] opacity-30" />
-        {steps.map((s, i) => {
-          const kind = kindOf(s);
-          const Icon = ICON[kind];
-          const last = i === steps.length - 1 && running;
-          return (
-            <li key={i} className="rise relative flex items-start gap-4">
-              <span
-                aria-hidden
-                className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
-                  kind === "reject"
-                    ? "bg-focus-soft text-focus"
-                    : kind === "pay"
-                      ? "bg-[#ffc439] text-[#003087]"
-                      : last
-                        ? "bg-brand-fill text-on-brand"
-                        : "bg-surface text-foreground"
-                } ${last ? "motion-safe:animate-pulse" : ""}`}
-              >
-                <Icon className="h-4 w-4" strokeWidth={2} />
-              </span>
-              <span className={`pt-1 text-[16px] leading-snug ${kind === "reject" ? "text-foreground" : "text-muted"}`}>
-                <span className="sr-only">{kind === "reject" ? "Ruled out: " : ""}</span>
-                {s}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+      {collapsed ? (
+        <details className="group mt-6">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full bg-surface [&::-webkit-details-marker]:hidden px-4 text-[15px] font-medium text-brand hover:bg-brand-soft group-open:mb-4">
+            <span className="group-open:hidden">Show all {steps.length} steps</span>
+            <span className="hidden group-open:inline">Hide steps</span>
+          </summary>
+          {list}
+        </details>
+      ) : (
+        <div className="mt-6">{list}</div>
+      )}
     </section>
+  );
+}
+
+function StepList({ steps, running }: { steps: string[]; running: boolean }) {
+  return (
+    <ol className="relative grid gap-4" aria-live="polite" aria-relevant="additions">
+      <span aria-hidden className="absolute bottom-3 left-[15px] top-3 w-0.5 rounded-full bg-gradient-to-b from-brand-fill via-[#8a3ffc] to-[#e8457d] opacity-30" />
+      {steps.map((s, i) => {
+        const kind = kindOf(s);
+        const Icon = ICON[kind];
+        const last = i === steps.length - 1 && running;
+        return (
+          <li key={i} className="rise relative flex items-start gap-4">
+            <span
+              aria-hidden
+              className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+                kind === "reject"
+                  ? "bg-focus-soft text-focus"
+                  : kind === "pay"
+                    ? "bg-[#ffc439] text-[#003087]"
+                    : last
+                      ? "bg-brand-fill text-on-brand"
+                      : "bg-surface text-foreground"
+              } ${last ? "motion-safe:animate-pulse" : ""}`}
+            >
+              <Icon className="h-4 w-4" strokeWidth={2} />
+            </span>
+            <span className={`pt-1 text-[16px] leading-snug ${kind === "reject" ? "text-foreground" : "text-muted"}`}>
+              <span className="sr-only">{kind === "reject" ? "Ruled out: " : ""}</span>
+              {s}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
