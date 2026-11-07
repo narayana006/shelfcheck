@@ -1,0 +1,218 @@
+[
+ {
+  "id": "3337875784054",
+  "category": "cleanser",
+  "brand": "CeraVe",
+  "name": "Blemish Control Cleanser",
+  "price": 15.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/578/4054/front_en.21.200.jpg",
+  "ingredientsText": "aqua, water, cocamidopropyl hydroxysultaine, sodium lauroyl sarcosinate, niacinamide, salicylic acid, sodium chloride, sodium methyl cocoyl taurate, peg-150 pentaerythrityl tetrastearate, sodium benzoate, capryloyl glycine, citric acid, ceramide np, ceramide ap, ceramide eop, phytosphingosine, cholesterol, cocamidopropyl pg-dimonium chloride phosphate, disodium edta, hydrolyzed hyaluronic acid, xanthan gum, acrylates copolymer, benzoic acid"
+ },
+ {
+  "id": "3337875545822",
+  "category": "cleanser",
+  "brand": "La Roche-Posay",
+  "name": "Toleriane Purifying Foaming Cleanser",
+  "price": 16.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/554/5822/front_en.6.200.jpg",
+  "ingredientsText": "AQUA/WATER/EAU, GLYCERIN, COCO-BETAINE, PROPANEDIOL, SODIUM, COCOYL GLYCINATE, PEG-120 METHYL GLUCOSE, DIOLEATE, SODIUM HYDROXIDE, SODIUM CHLORIDE, CITRIC ACID, CERAMIDE NP, NIACINAMIDE, DISODIUM, EDTA, HYDROXYACETOPHENONE, CAPRYLOYL GLYCINE, CAPRYLYL GLYCOL, TRISODIUM ETHYLENEDIAMINE, DISUCCINATE, PENTYLENE GLYCOL, ACRYLATES, COPOLYMER, TOCOPHEROL (CODE F.I.L.: N70042172/1)"
+ },
+ {
+  "id": "8906005274106",
+  "category": "cleanser",
+  "brand": "Cetaphil",
+  "name": "Gentle Skin Cleanser",
+  "price": 11.49,
+  "image": "https://images.openbeautyfacts.org/images/products/890/600/527/4106/front_en.6.200.jpg",
+  "ingredientsText": "AQUA, GLYCERIN, CETEARYL ALCOHOL, PANTHENOL, NIACINAMIDE, PANTOLACTONE, XANTHAN GUM, SODIUM COCOYL ISETHIONATE, SODIUM BENZOATE, CITRIC ACID."
+ },
+ {
+  "id": "3401381507565",
+  "category": "cleanser",
+  "brand": "Bioderma",
+  "name": "Sensibio Foaming Gel",
+  "price": 14.99,
+  "image": "https://images.openbeautyfacts.org/images/products/340/138/150/7565/front_en.16.200.jpg",
+  "ingredientsText": "aqua, glycerin, sodium cocoamphoacetate, sodium lauroyl sarcosinate, coco-glucoside, glyceryl oleate, citric acid, propanediol, peg-90 glyceryl isostearate, mannitol, xylitol, rhamnose, fructooligosaccharides, laminaria ochroleuca extract, caprylic/capric triglyceride, lactic acid, sodium citrate, sodium chloride, sodium hydroxide, sodium benzoate, phenoxyethanol, cetrimonium bromide, fragrance"
+ },
+ {
+  "id": "7891010009250",
+  "category": "cleanser",
+  "brand": "Neutrogena",
+  "name": "Hydro Boost Cleansing Gel",
+  "price": 9.99,
+  "image": "https://images.openbeautyfacts.org/images/products/789/101/000/9250/front_en.7.200.jpg",
+  "ingredientsText": "Água, Glicerina, Coco-Glucosídeo, Carbomer, Trietanolamina, Lactose (1%), Avena Sativa (Aveia), Hydrolyzed Wheat Protein (Glúten), Sodium Benzoate, Potassium Sorbate, Fragrância"
+ },
+ {
+  "id": "0769915233506",
+  "category": "serum",
+  "brand": "The Ordinary",
+  "name": "Hyaluronic Acid 2% + B5",
+  "price": 9.9,
+  "image": "https://images.openbeautyfacts.org/images/products/076/991/523/3506/front_en.8.200.jpg",
+  "ingredientsText": "Aqua/Water/Eau, Sodium Hyaluronate, Propandiol, Pentylene Glycol, Hydrolyzed Hyaluronic Acid, Sodium Hyaluronate Crosspolymer, Phospholipids, Sphingolipids, Panthenol, Anthemis Nobilis Flower Extract, Glycerin, Polysorbate 20, Citric Acid, Sodium Citrate, Panisic Acid, Tocopherol, Trisodium Ethylenediamine Disuccinate, Caprylyl Glycol, Ethoxydiglycol, Ethylhexylglycerin, Hexylene Glycol, Phenoxyethanol, Chlorphenesin"
+ },
+ {
+  "id": "00432401",
+  "category": "serum",
+  "brand": "Aroma-Zone",
+  "name": "Niacinamide 10% Serum",
+  "price": 12.9,
+  "image": "https://images.openbeautyfacts.org/images/products/000/000/043/2401/front_fr.8.200.jpg",
+  "ingredientsText": "Aqua, Niacinamide, Salix Nigra Bark Extract, Zinc PCA, sodium Hyaluronate, Copper PCA, Biosaccharide Gum-1, Glycerin, Levulinic Acid, Sodium Levulinate, Glyceryl Caprylate, Sodium Anisate, Sodium Hydroxide, Tetrasodium Glutamate Diacetate"
+ },
+ {
+  "id": "0655439007962",
+  "category": "serum",
+  "brand": "Paula's Choice",
+  "name": "2% BHA Spot Exfoliant",
+  "price": 13.0,
+  "image": "https://images.openbeautyfacts.org/images/products/065/543/900/7962/front_en.17.200.jpg",
+  "ingredientsText": "Aqua, Butylene, Glycol, Cetyl, Alcohol, PPG-14, Butyl Ether, Salicylic Acid, Dimethicone, Tocopheryl Acetate, Chamomilla Recutita (Matrucaria) Flower Extract, Epilobium Angustifolium (Willow Herb) Flower/Leaf/Stem Extract, Camellia Oleifera (Green Tea) Leaf Extract, Vanilla Planifolia Fruit Extract, Bisabolol, Allantoin, Cyclopentasiloxane, Cyclohexasiloxane, Dimethiconol, PEG-40 Stearate, Sorbitan Stearate, Polysorbate 20, PVM/MA Decadiene Crosspolymer, Polyacrylamide, C13-14 Isoparrafin, Laureth-7, Disodium EDTA, Sodium Hydroxide, Hexylene Glycol, Caprylyl Glycol, Ethyhexylglycerin, Phenoxyethanol"
+ },
+ {
+  "id": "5060879820685",
+  "category": "serum",
+  "brand": "The Inkey List",
+  "name": "Retinol Serum",
+  "price": 11.99,
+  "image": "https://images.openbeautyfacts.org/images/products/506/087/982/0685/front_en.3.200.jpg",
+  "ingredientsText": "Water (Aqua/Eau), Glycerin, Butylene Glycol, Propanediol, Dicaprylyl Carbonate, Dimethicone, Retinyl Acetate, Phenoxyethanol, Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer, Caprylyl Glycol, Phospholipids, Squalane, Dimethyl Isosorbide, Glycine Soja (Soybean) Oil, Carbomer, Polysorbate 60, Tocopheryl Acetate, Glycolipids, Hydroxypinacolone Retinoate, Sodium Hydroxide, Sorbitan Isostearate, Glycine Soja (Soybean) Sterols, Tetrasodium Glutamate Diacetate, Tetrahexyldecyl Ascorbate, Leuconostoc/Radish Root Ferment Filtrate, Hyaluronic Acid, Sodium Lactate, Tocopherol Polysorbate 20, Palmitoyl Tetrapeptide-7, Palmitoyl Tripeptide-1"
+ },
+ {
+  "id": "3600542536837",
+  "category": "serum",
+  "brand": "Garnier",
+  "name": "Vitamin C Glow Booster Serum",
+  "price": 14.99,
+  "image": "https://images.openbeautyfacts.org/images/products/360/054/253/6837/front_nl.7.200.jpg",
+  "ingredientsText": "AQUA / WATER, GLYCERIN, ALCOHOL DENAT., DIPROPYLENE GLYCOL, BUTYLENE GLYCOL, NIACINAMIDE, PEG/PPG/POLYBUTYLENE GLYCOL-8/5/3 GLYCERIN, HYDROXYETHYLPIPERAZINE ETHANE SULFONIC ACID, ISONONYL ISONONANOATE, ASCORBYL GLUCOSIDE, CITRUS LIMON FRUIT EXTRACT / LEMON FRUIT EXTRACT, POTASSIUM HYDROXIDE, 2-MERCAPTONICOTINOYL GLYCINE, SODIUM HYALURONATE, SODIUM THIOSULFATE, SILICA, ADENOSINE, PHENYLETHYL RESORCINOL, AMMONIUM POLYACRYLOYLDIMETHYL TAURATE, HYDROGENATED LECITHIN, CAPRYLYL GLYCOL, TETRASODIUM GLUTAMATE DIACETATE, TRISODIUM ETHYLENEDIAMINE DISUCCINATE, XANTHAN GUM, TOCOPHERYL ACETATE, SALICYLIC ACID, CHLORPHENESIN, CI 15510 / ORANGE 4, CI 19140 / YELLOW 5, LINALOOL, GERANIOL, LIMONENE, PARFUM / FRAGRANCE"
+ },
+ {
+  "id": "3337875518451",
+  "category": "serum",
+  "brand": "La Roche-Posay",
+  "name": "Effaclar Duo (+) Acne Treatment",
+  "price": 21.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/551/8451/front_ar.7.200.jpg",
+  "ingredientsText": "Aqua/water, glycerin, dimethicone, isocetyl stearate, niacinamide, isopropyl lauroyl sarcosinate, ammonium polyacryloyldimethyl taurate, methyl methacrylate crosspolymer, t-butyl alcohol, sodium hydroxide, oleic acid, salicylic acid, silica silylate, poloxamer 338, nylon-12, polysorbate 80, zinc PCA, linoleic acid, pentaerythrityltetra-di-t-butyl hydroxhydrocinnamate, isohexadecane, 2-oleamido-1, 3-octadecanediol, capryloyl salicylic acid, caprylyl glycol, piroctone olamine, myristyl myristate, acrylamide/sodium acryloyldimethyltaurate copolymer, parfum/fragrance, sorbitan oleate, disodium EDTA, potassium cetyl phosphate, BHT, glyceryl stearate SE (± may contain CI 77891/titanium dioxide, CI 77491, CI 77492, CI 77499/iron oxides, mica,)\r\nCode FIL : B184641/1"
+ },
+ {
+  "id": "3337875598996",
+  "category": "moisturizer",
+  "brand": "CeraVe",
+  "name": "Moisturising Cream",
+  "price": 17.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/559/8996/front_en.28.200.jpg",
+  "ingredientsText": "aqua, water, glycerin, cetearyl alcohol, caprylic, capric triglyceride, cetyl alcohol, ceteareth-20, petroleum, potassium phosphate, ceramide np, ceramide ap, ceramide eop, carbomer, dimethicone, behentrimonium methosulfate, cetearyl glucoside, lauroyl lactylate, sodium hyaluronate, cholesterol, phenoxyethanol, sodium edta, dipotassium phosphate, tocopherol, phytosphingosine, xanthan gum, ethylhexylglycerin"
+ },
+ {
+  "id": "3606000537453",
+  "category": "moisturizer",
+  "brand": "CeraVe",
+  "name": "PM Facial Moisturizing Lotion",
+  "price": 16.49,
+  "image": "https://images.openbeautyfacts.org/images/products/360/600/053/7453/front_en.3.200.jpg",
+  "ingredientsText": "Purified Water, Glycerin, Caprylic/Capric Triglycerides, Niacinamide, Behentrimonium Methosulfate and Cetearyl Alcohol, Ceteareth-20 and Cetearyl Alcohol, Ceramide 3, Ceramide 6-II, Ceramide 1, Phytosphingosine, Hyaluronic Acid, Cholesterol, Dimethicone, Polyglyceryl-3 Diisostearate, Potassium Phosphate, Dipotassium Phosphate, Sodium Lauroyl Lactylate, Disodium EDTA, Methylparaben, Propylparaben, Carbomer, Xanthan Gum."
+ },
+ {
+  "id": "3574661287201",
+  "category": "moisturizer",
+  "brand": "Neutrogena",
+  "name": "Hydro Boost Water Gel",
+  "price": 19.99,
+  "image": "https://images.openbeautyfacts.org/images/products/357/466/128/7201/front_en.10.200.jpg",
+  "ingredientsText": "Aqua, Dimethicone, Glycerin, Dimethicone/Vinyl Dimethicone Crosspolymer, Sodium Hyaluronate, Ethylhexylglycerin, Dimethiconol, Cetearyl Olivate, Sorbitan Olivate, Laureth-7, C12-14 Pareth-12 Polyacrylamide, Dimethicone Crosspolymer, Carbomer, C13-14 Isoparaffin, Sodium Hydroxide, Phenoxyethanol, Chlorphenesin, Methylparaben, Benzoic Acid, Parfum, CI 42090"
+ },
+ {
+  "id": "0192333066942",
+  "category": "moisturizer",
+  "brand": "Clinique",
+  "name": "Moisture Surge 100H Hydrator",
+  "price": 44.0,
+  "image": "https://images.openbeautyfacts.org/images/products/019/233/306/6942/front_en.3.200.jpg",
+  "ingredientsText": "Water\\Aqua\\Eau, Dimethicone, Butylene Glycol, Glycerin, Trisiloxane, Trehalose, Sucrose, Ammonium Acryloyldimethyltaurate/Vp Copolymer, Hydroxyethyl Urea, Camellia Sinensis (Green Tea) Leaf Extract, Silybum Marianum (Lady's Thistle) Extract, Betula Alba (Birch) Bark Extract, Saccharomyces Lysate Extract, Aloe Barbadensis Leaf Water, Aloe Barbadensis Leaf Extract, Thermus Thermophillus Ferment, Caffeine, Sorbitol, Palmitoyl Hexapeptide-12, Sodium Hyaluronate, Caprylyl Glycol, Oleth-10, Sodium Polyaspartate, Aloe Barbadensis Leaf Polysaccharides, Lactobacillus Ferment Lysate, Saccharide Isomerate, Hydrogenated Lecithin, Tocopheryl Acetate, Acrylates/C10-30 Alkyl Acrylate Crosspolymer, Glyceryl Polymethacrylate, Tromethamine, Peg-8, Hexylene Glycol, Magnesium Ascorbyl Phosphate, Citric Acid, Bht, Disodium Edta, Sodium Citrate, Potassium Sorbate, Sodium Benzoate, Phenoxyethanol, Red 4 (CI 14700), Yellow 5 (CI 19140)."
+ },
+ {
+  "id": "42164104",
+  "category": "moisturizer",
+  "brand": "NIVEA",
+  "name": "Creme",
+  "price": 7.99,
+  "image": "https://images.openbeautyfacts.org/images/products/000/004/216/4104/front_en.24.200.jpg",
+  "ingredientsText": "Aqua, Paraffinum Liquidum, Cera Microcristallina, Glycerin, Lanolin Alcohol (Eucerit®), Paraffin, Panthenol, Magnesium Sulfate, Decyl Oleate, Octyldodecanol, Aluminum Stearates, Citric Acid, Magnesium Stearate, Limonene, Geraniol, Hydroxycitronellal, Linalool, Citronellol, Benzyl Benzoate, Cinnamyl Alcohol, Parfum"
+ },
+ {
+  "id": "4005800019876",
+  "category": "moisturizer",
+  "brand": "Eucerin",
+  "name": "Aquaphor Repairing Ointment",
+  "price": 12.99,
+  "image": "https://images.openbeautyfacts.org/images/products/400/580/001/9876/front_en.11.200.jpg",
+  "ingredientsText": "Paraffinum Liquidum, Cera Micro-cristallina, Ceresin, Lanolin Alcohol (Eucerit®), Panthenol, Glycerin, Bisabolol"
+ },
+ {
+  "id": "3337875816847",
+  "category": "moisturizer",
+  "brand": "La Roche-Posay",
+  "name": "Cicaplast Baume B5+",
+  "price": 17.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/581/6847/front_fr.12.200.jpg",
+  "ingredientsText": "EAU, HYDROGENATED POLYISOBUTENE, DIMETHICONE, GLYCERIN, SHEA BUTTER, PANTHENOL, CORN STARCH, PROPANEDIOL, BUTYLENE GLYCOL, CETYL PEG, TRIHYDROXYSTEARIN, CENTELLA ASIATICA LEAF EXTRACT, POLYMNIA SONCHIFOLIA ROOT JUICE, ZINC GLUCONATE, MADECASSOSIDE, MANGANESE GLUCONATE, ALPHA-GLUCAN OLIGOSACCHARIDE, SILICA, ALUMINUM HYDROXIDE, MAGNESIUM SULFATE, MANNOSE, CAPRYLOYL GLYCINE, CAPRYLYL GLYCOL, VITREOSCILLA FERMENT, CITRIC ACID, TRISODIUM ETHYLENEDIAMINE DISUCCINATE, LACTOBACILLUS, ACETYLATED GLYCOL STEARATE, MALTODEXTRIN, POLYGLYCERYL-4 ISOSTEARATE, TOCOPHEROL, PENTAERYTHRITYL TETRA-DI-T-BUTYL HYDROXYHYDROCINNAMATE, CI 77891"
+ },
+ {
+  "id": "3337875950398",
+  "category": "moisturizer",
+  "brand": "La Roche-Posay",
+  "name": "Toleriane Double Repair Moisturizing Drops",
+  "price": 24.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/595/0398/front_en.3.200.jpg",
+  "ingredientsText": "Aqua/Water/Eau, Caprylic/Capric Triglyceride, Glycerin, Propanediol, Pentylene Glycol, Niacinamide, Ammonium Polyacryloyldimethyl Taurate, Caprylyl Glycol, Citric Acid, Xanthan Gum"
+ },
+ {
+  "id": "3337875545846",
+  "category": "sunscreen",
+  "brand": "La Roche-Posay",
+  "name": "Toleriane Double Repair Moisturizer UV SPF 30",
+  "price": 23.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/554/5846/front_en.3.200.jpg",
+  "ingredientsText": "Avobenzone 3% (Sunscreen), Homosalate 5% (Sunscreen), Octisalate 5% (Sunscreen), Octocrylene 7% (Sunscreen) Water (La Roche-Posay Prebiotic Thermal Water), Glycerin, Silica, Dimethicone, Niacinamide, Peg-100 Stearate, Glyceryl Stearate, Stearic Acid, Stearyl Alcohol, Allantoin, Ceramide Np, Dimethicone/Vinyl Dimethicone Crosspolymer, Sodium Hydroxide, Myristic Acid, Myristyl Alcohol, Palmitic Acid, Ammonium Polyacryloyldimethyl Taurate, Disodium Edta, Capryloyl Glycine, Caprylyl Glycol, Citric Acid, Xanthan Gum, T-Butyl Alcohol, Cetyl Alcohol, Tocopherol."
+ },
+ {
+  "id": "3337875917872",
+  "category": "sunscreen",
+  "brand": "La Roche-Posay",
+  "name": "Anthelios UVMune 400 Hydrating Milk SPF 50+",
+  "price": 34.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/591/7872/front_en.8.200.jpg",
+  "ingredientsText": "WATER, ISOPROPYL PALMITATE, ACOHOL DENAT, BUTYL METHOXYDIBENZOYLMETHANE, ETHYLHEXYL TRIAZONE, BIS-ETHYLHEXYLOXYPHENOL METHOXYPHENYL TRIAZINE, GLYCERIN, PROPANEDIOL, DICAPRYLYL ETHER, TRIETHANOLAMINE,  PHENYLBENZIMIDAZOLE SULFONIC ACID, DIISOPROPYL ADIPATE, DIISOPROPYL SEBACATE, DIETHYLAMINO HYDROXYBENZOYL HEXYL BENZOATE OXIDIZED CHACETATE COPERNICIA CERIFERA CERA/CARNAUBA WAX DE CARNAUBA METHOXYPROPYLAMINO CYCLOHEXENYLIDENE • Tout ce qu'il faut savol HOYETHYLCYANOACETATE PENTYLENE GLYCOL C12-22 ALKYL All you need to know TEHYDROXYETHYLACRYLATE COPOLYMER ACRYLATES COPOLYMER ATES/C10-30 ALKYL ACRYLATE CROSSPOLYMER BUTYROSPERMUM BUTTER/SHEA BUTTER CAPRYLYL GLYCOL CITRIC ACID MERIZOLE TRISILOXANE HYDROXYETHYLCELLULOSE : ALDENE DICAMPHOR SULFONIC ACID TOCOPHEROL TRISODIUM ENE DISUCCINATE XANTHAN GUM"
+ },
+ {
+  "id": "3401561197715",
+  "category": "sunscreen",
+  "brand": "Bioderma",
+  "name": "Photoderm Max Aquafluide SPF 50+",
+  "price": 19.99,
+  "image": "https://images.openbeautyfacts.org/images/products/340/156/119/7715/front_fr.4.200.jpg",
+  "ingredientsText": "AQUA/WATER/EAU, DICAPRYLYL CARBONATE, OCTOCRYLENE, METHYLENE BIS-BENZOTRIAZOLYL TETRAMETHYLBUTYLPHENOL [NANO], BUTYL METHOXYDIBENZOYLMETHANE, GLYCERIN, METHYL METHACRYLATE CROSSPOLYMER, CYCLOHEXASILOXANE, CYCLOPENTASILOXANE, BIS-ETHYLHEXYLOXYPHENOL METHOXYPHENYL TRIAZINE, POLYMETHYLSILSESQUIOXANE, METHYLPROPANEDIOL, HDI/TRIMETHYLOL HEXYLLACTONE CROSSPOLYMER, C20-22 ALKYL PHOSPHATE, C20-22 ALCOHOLS, DECYL GLUCOSIDE, GLYCERYL STEARATE CITRATE, PENTYLENE GLYCOL, MICROCRYSTALLINE CELLULOSE, C30-45 ALKYL CETEARYL DIMETHICONE CROSSPOLYMER, 1,2-HEXANEDIOL, CAPRYLYL GLYCOL, DISODIUM EDTA, XANTHAN GUM, MANNITOL, XYLITOL, SODIUM HYDROXIDE, CELLULOSE GUM, RHAMNOSE, PROPYLENE GLYCOL, CITRIC ACID, ECTOIN, TOCOPHEROL"
+ },
+ {
+  "id": "3600542520454",
+  "category": "sunscreen",
+  "brand": "Garnier",
+  "name": "Ambre Solaire Sensitive Expert+ SPF 50+",
+  "price": 13.99,
+  "image": "https://images.openbeautyfacts.org/images/products/360/054/252/0454/front_fr.3.200.jpg",
+  "ingredientsText": "AQUA/WATER, ALCOHOL DENAT., ETHYLHEXYL SALICYLATE, ETHYLHEXYL TRIAZONE, BUTYL METHOXYDIBENZOYLMETHANE. BIS-ETHYLHEXYLOXYPHENOL METHOXYPHENYL TRIAZINE, ISOPROPYL PALMITATE, DIISOPROPYL ADIPATE, GLYCERIN, PROPANEDIOL, PHENYLBENZIMIDAZOLE SULFONIC ACID, DICAPRYLYL ETHER, TRIETHANOLAMINE, C12-22 ALKYL ACRYLATE/HYDROXYETHYLACRYLATE COPOLYMER, TOCOPHEROL, HYDROXYACETOPHENONE, SODIUM POLYACRYLATE, SODIUM BENZOATE, TRISODIUM ETHYLENEDIAMINE DISUCCINATE, DROMETRIZOLE TRISILOXANE, ALOE BARBADENSIS LEAF JUICE, CAPRYLYL GLYCOL, ACRYLATES/C10-30 ALKYL ACRYLATE CROSSPOLYMER, CERAMIDE NP, CITRIC ACID, POTASSIUM SORBATE."
+ },
+ {
+  "id": "3337875549493",
+  "category": "sunscreen",
+  "brand": "La Roche-Posay",
+  "name": "Effaclar Duo (+) SPF 30",
+  "price": 23.99,
+  "image": "https://images.openbeautyfacts.org/images/products/333/787/554/9493/front_fr.4.200.jpg",
+  "ingredientsText": "Aqua, Octocrylene, Glycerin, Homosalate, Ethylhexyl Salicylate, Alcohol Denat. , Niacinamide, Butyl Methoxydibenzoylmethane, Dimethicone, Sorbitan Stearate, Silica, Isopropyl Lauroyl Sarcosinate, Styrene/Acrylates Copolymer, Propylene Glycol, Potassium Cetyl Phospate, Diisopropyl Sebacate, Peg-20, Peg-8 Laurate, Zinc PCA, Dimethicone/Vinyl Dimethicone Crosspolymer, 2-Oleamido-1n 3-Octadecanediol, Inulin Lauryl Carbamate, Carnosine, Poloxamer 338, Ammonium Polyacryloyldimethyl Taurate, Disodium EDTA, Sucrose Cocoate, Capryloyl Saliclic Acid, Xanthan Gum, T-Butyl Alcohol, BHT, Salicylic Acid, parfum/fragrance,"
+ }
+]
