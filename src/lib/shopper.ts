@@ -63,7 +63,7 @@ How to work:
 - Then call propose_refill once: pick how many weeks until this routine needs refilling, using typical usage per category (cleanser ~10 weeks, serum ~6, moisturizer ~8, sunscreen ~6 with daily use). Refill when the first key product runs out.
 - Keep each "why" to one sentence that names the shopper's measured concern and the ingredient that addresses it.`;
 
-function fitFor(p: CatalogProduct, scores: ConcernScore[]) {
+export function fitFor(p: CatalogProduct, scores: ConcernScore[]) {
   const matches = matchIngredients(p.ingredients);
   const fit = scoreFit(matches, scores);
   return {

@@ -8,6 +8,7 @@ import {
   Environment,
   ItemCategory,
   OrdersController,
+  PaymentsController,
   PaypalExperienceUserAction,
   PaypalWalletContextShippingPreference,
   type OrderRequest,
@@ -16,20 +17,30 @@ import { getProduct } from "./catalog";
 
 export class PayPalError extends Error {}
 
+let client: Client | null = null;
 let controller: OrdersController | null = null;
+let paymentsController: PaymentsController | null = null;
 
-function orders() {
+function sdk() {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new PayPalError("The server is missing its PayPal sandbox credentials.");
-  controller ??= new OrdersController(
-    new Client({
-      clientCredentialsAuthCredentials: { oAuthClientId: clientId, oAuthClientSecret: clientSecret },
-      environment: process.env.PAYPAL_ENV === "live" ? Environment.Production : Environment.Sandbox,
-      timeout: 15_000,
-    }),
-  );
+  client ??= new Client({
+    clientCredentialsAuthCredentials: { oAuthClientId: clientId, oAuthClientSecret: clientSecret },
+    environment: process.env.PAYPAL_ENV === "live" ? Environment.Production : Environment.Sandbox,
+    timeout: 15_000,
+  });
+  return client;
+}
+
+function orders() {
+  controller ??= new OrdersController(sdk());
   return controller;
+}
+
+function payments() {
+  paymentsController ??= new PaymentsController(sdk());
+  return paymentsController;
 }
 
 export interface CartLine {
@@ -121,4 +132,36 @@ export async function captureOrder(orderId: string): Promise<CaptureResult> {
     amount: capture?.amount ? `${capture.amount.value} ${capture.amount.currencyCode}` : undefined,
     payer: result.payer?.name?.givenName,
   };
+}
+
+export interface RefundResult {
+  refundId: string;
+  status: string;
+  amount: string;
+  product: string;
+}
+
+/**
+ * "Reaction guarantee": refund one product from a completed order. The order is read back from
+ * PayPal, so only an item that was actually bought can be refunded, at the price actually paid.
+ * The idempotency key makes a second tap for the same item return the same refund.
+ */
+export async function refundItem(orderId: string, productId: string): Promise<RefundResult> {
+  const { result: order } = await orders().getOrder({ id: orderId });
+  if (String(order.status) !== "COMPLETED") throw new PayPalError("Only completed orders can be refunded.");
+  const unit = order.purchaseUnits?.[0];
+  const item = unit?.items?.find((i) => i.sku === productId);
+  const capture = unit?.payments?.captures?.[0];
+  if (!item || !capture?.id) throw new PayPalError("That product isn't in this order.");
+  const value = (Number(item.unitAmount.value) * Number(item.quantity)).toFixed(2);
+  const { result } = await payments().refundCapturedPayment({
+    captureId: capture.id,
+    paypalRequestId: `reaction-${orderId}-${productId}`,
+    prefer: "return=representation",
+    body: {
+      amount: { currencyCode: "USD", value },
+      noteToPayer: `ShelfCheck reaction guarantee: ${item.name}`.slice(0, 255),
+    },
+  });
+  return { refundId: String(result.id), status: String(result.status), amount: `${value} USD`, product: item.name };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckView } from "@/components/CheckView";
 import { Hero } from "@/components/Hero";
 import { ProgressView } from "@/components/ProgressView";
@@ -14,7 +14,7 @@ type Tab = "shop" | "skin" | "check" | "progress";
 const TABS: { id: Tab; label: string }[] = [
   { id: "shop", label: "Shop" },
   { id: "skin", label: "My skin" },
-  { id: "check", label: "Check a product" },
+  { id: "check", label: "Check" },
   { id: "progress", label: "Progress" },
 ];
 
@@ -24,6 +24,7 @@ export default function Home() {
   const [checks, setChecks] = useState<SavedCheck[]>([]);
   const [ready, setReady] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setScans(store.scans());
@@ -33,68 +34,89 @@ export default function Home() {
 
   const latest = scans[0] ?? null;
 
+  function go(next: Tab, scan = false) {
+    setScanning(scan);
+    setTab(next);
+    window.scrollTo({ top: 0 });
+    // Move focus to the new screen so keyboard and screen-reader users land in it.
+    requestAnimationFrame(() => mainRef.current?.focus({ preventScroll: true }));
+  }
+
   function addScan(s: SkinScan) {
     const next = [s, ...scans];
     setScans(next);
     store.saveScans(next);
-    setScanning(false);
-    setTab("shop");
+    try {
+      document.documentElement.dataset.app = "1";
+    } catch {}
+    go("shop");
   }
 
-  function useSample() {
+  function startWithSample() {
     addScan({ id: newId(), takenAt: new Date().toISOString(), scores: sampleScores(), tone: { skin: "#c99a7e" }, sample: true });
   }
 
-  if (!ready) return <div className="min-h-dvh" />;
-
-  if (!latest && !scanning) {
-    return <Hero onScan={() => setScanning(true)} onSample={useSample} />;
+  // Server render and first paint: the landing page (a pre-paint script swaps to the app shell
+  // for returning visitors, so neither group sees a blank page or a flash).
+  if (!ready || (!latest && !scanning)) {
+    return (
+      <>
+        <div className="landing">
+          <Hero onScan={() => go("skin", true)} onSample={startWithSample} />
+        </div>
+        {!ready && <div className="app-skeleton min-h-dvh" aria-hidden />}
+      </>
+    );
   }
 
   return (
     <div className="min-h-dvh">
-      <nav className="sticky top-0 z-20 border-b border-line/50 bg-background/72 backdrop-blur-xl backdrop-saturate-150">
-        <div className="mx-auto flex h-12 max-w-3xl items-center gap-6 px-4">
-          <span className="shrink-0 text-[17px] font-semibold tracking-tight">ShelfCheck</span>
-          <div className="-mx-1 flex flex-1 gap-1 overflow-x-auto">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  setScanning(false);
-                  setTab(t.id);
-                }}
-                aria-current={tab === t.id && !scanning ? "page" : undefined}
-                className={`shrink-0 rounded-full px-3 py-1 text-[13px] transition ${
-                  tab === t.id && !scanning ? "bg-foreground text-background" : "text-muted hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 focus:rounded-full focus:bg-background focus:px-4 focus:py-2">
+        Skip to content
+      </a>
+      <nav aria-label="ShelfCheck" className="sticky top-0 z-30 border-b border-line/40 bg-background/72 backdrop-blur-xl backdrop-saturate-150">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-8">
+          <span className="shrink-0 text-[19px] font-semibold tracking-tight">ShelfCheck</span>
+          <div className="no-scrollbar -mr-4 flex flex-1 gap-1 overflow-x-auto pr-4 [mask-image:linear-gradient(to_right,black_85%,transparent)] sm:mr-0 sm:justify-end sm:pr-0 sm:[mask-image:none]">
+            {TABS.map((t) => {
+              const active = tab === t.id && !scanning;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => go(t.id)}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative min-h-11 shrink-0 px-3 text-[14px] transition ${
+                    active ? "font-semibold text-foreground" : "text-muted hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                  {active && <span aria-hidden className="absolute inset-x-3 bottom-1.5 h-0.5 rounded-full bg-foreground" />}
+                </button>
+              );
+            })}
           </div>
         </div>
       </nav>
 
       {latest?.sample && (
-        <div className="bg-brand-soft px-4 py-2 text-center text-[13px] text-brand">
+        <div className="bg-brand-soft px-4 py-2.5 text-center text-[14px] text-brand">
           You&apos;re using a sample skin profile.{" "}
-          <button onClick={() => setScanning(true)} className="font-semibold underline-offset-4 hover:underline">
+          <button onClick={() => go("skin", true)} className="min-h-6 font-semibold underline-offset-4 hover:underline">
             Scan your own skin ›
           </button>
         </div>
       )}
 
-      <main className="mx-auto max-w-3xl px-4 pb-24 pt-8 sm:pt-12">
+      <main id="main" ref={mainRef} tabIndex={-1} className="mx-auto max-w-3xl px-4 pb-28 pt-2 outline-none">
         {scanning || tab === "skin" ? (
           <SkinView latest={scanning ? null : latest} onScan={addScan} />
         ) : tab === "shop" ? (
-          <ShopView scan={latest} goScan={() => setScanning(true)} />
+          <ShopView scan={latest} goScan={() => go("skin", true)} />
         ) : tab === "check" ? (
           <CheckView
             scan={latest}
             history={checks}
-            goScan={() => setScanning(true)}
+            goScan={() => go("skin", true)}
             onCheck={(c) => {
               const next = [c, ...checks];
               setChecks(next);
@@ -106,7 +128,7 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="border-t border-line/50 py-8 text-center text-xs text-muted">
+      <footer className="border-t border-line/40 px-4 py-8 text-center text-xs leading-relaxed text-muted">
         Demo store in PayPal sandbox · not affiliated with the brands shown · not medical advice
       </footer>
     </div>

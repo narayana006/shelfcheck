@@ -9,8 +9,20 @@ export interface SavedCheck {
   result: CheckResult;
 }
 
+/** A paid order and (optionally) its refill subscription, kept on-device. */
+export interface SavedOrder {
+  orderId: string;
+  captureId?: string;
+  paidAt: string;
+  total: number;
+  items: { productId: string; brand: string; name: string; category: string; price: number; quantity: number; image?: string }[];
+  refunded: Record<string, string>;
+  subscription?: { id: string; intervalWeeks: number; status: string; nextBilling?: string };
+}
+
 const SCANS_KEY = "shelfcheck.scans";
 const CHECKS_KEY = "shelfcheck.checks";
+const ORDERS_KEY = "shelfcheck.orders";
 
 function read<T>(key: string): T[] {
   try {
@@ -32,7 +44,16 @@ export const store = {
   saveScans: (s: SkinScan[]) => write(SCANS_KEY, s),
   checks: () => read<SavedCheck>(CHECKS_KEY),
   saveChecks: (c: SavedCheck[]) => write(CHECKS_KEY, c.slice(0, 30)),
+  orders: () => read<SavedOrder>(ORDERS_KEY),
+  saveOrders: (o: SavedOrder[]) => write(ORDERS_KEY, o.slice(0, 20)),
 };
+
+/** Update one saved order in place (refunds, subscription status). */
+export function updateOrder(orderId: string, patch: (o: SavedOrder) => SavedOrder): SavedOrder[] {
+  const next = store.orders().map((o) => (o.orderId === orderId ? patch(o) : o));
+  store.saveOrders(next);
+  return next;
+}
 
 /** Downscale a camera photo so uploads are fast and within API limits. */
 export async function prepareImage(file: File, maxLongSide = 2048): Promise<Blob> {

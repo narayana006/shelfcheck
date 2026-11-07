@@ -80,7 +80,16 @@ export async function createRefillPlan(orderId: string, intervalWeeks: number): 
   const key = `${orderId}:${weeks}`;
   const cached = plans.get(key);
   if (cached) return cached;
-  const lines = await paidOrderLines(orderId);
+  const created = await planForLines(await paidOrderLines(orderId), weeks);
+  plans.set(key, created);
+  return created;
+}
+
+/** A billing plan for an exact set of catalog lines (used for the original refill and for swaps). */
+export async function planForLines(lines: CartLine[], weeks: number): Promise<RefillPlan> {
+  const key = `lines:${lines.map((l) => `${l.productId}x${l.quantity}`).join(",")}:${weeks}`;
+  const cached = plans.get(key);
+  if (cached) return cached;
   const { items, total } = priceCart(lines);
   const plan = await api<{ id: string }>("POST", "/v1/billing/plans", {
     product_id: await refillProduct(),
@@ -109,14 +118,38 @@ export async function createRefillPlan(orderId: string, intervalWeeks: number): 
 export interface SubscriptionStatus {
   id: string;
   status: string;
+  planId?: string;
   nextBilling?: string;
 }
 
 /** Verify a subscription the shopper approved in PayPal. */
 export async function getSubscription(id: string): Promise<SubscriptionStatus> {
-  const s = await api<{ id: string; status: string; billing_info?: { next_billing_time?: string } }>(
+  const s = await api<{ id: string; status: string; plan_id?: string; billing_info?: { next_billing_time?: string } }>(
     "GET",
     `/v1/billing/subscriptions/${encodeURIComponent(id)}`,
   );
-  return { id: s.id, status: s.status, nextBilling: s.billing_info?.next_billing_time };
+  return { id: s.id, status: s.status, planId: s.plan_id, nextBilling: s.billing_info?.next_billing_time };
+}
+
+/**
+ * Move an active subscription to a new plan (the agent's swapped routine). Because the price
+ * changes, PayPal requires the subscriber to approve the revision: we return that approval link.
+ */
+export async function reviseSubscription(id: string, planId: string, returnUrl: string): Promise<{ approveUrl: string }> {
+  const res = await api<{ links?: { href: string; rel: string }[] }>(
+    "POST",
+    `/v1/billing/subscriptions/${encodeURIComponent(id)}/revise`,
+    {
+      plan_id: planId,
+      application_context: {
+        brand_name: "ShelfCheck",
+        user_action: "CONTINUE",
+        return_url: returnUrl,
+        cancel_url: returnUrl,
+      },
+    },
+  );
+  const approveUrl = res.links?.find((l) => l.rel === "approve")?.href;
+  if (!approveUrl) throw new PayPalError("PayPal didn't return an approval link for the change.");
+  return { approveUrl };
 }

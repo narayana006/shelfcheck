@@ -14,6 +14,7 @@
     "@paypal/react-paypal-js": "^10.6.1",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
+    "lucide-react": "^0.468.0",
     "next": "15.5.28",
     "react": "19.1.0",
     "react-dom": "19.1.0",

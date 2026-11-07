@@ -1,31 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --surface: #f5f5f7;
-  --raised: #ffffff;
-  --foreground: #1d1d1f;
-  --muted: #6e6e73;
-  --line: #d2d2d7;
-  --brand: #0071e3;
+  /* Warm cream palette: cream page, pale sand cards, soft ivory raised surfaces. */
+  --background: #fbf7f0;
+  --surface: #f3ece1;
+  --raised: #fffdf8;
+  --foreground: #1f1b16;
+  --muted: #69625a;
+  --line: #e2d9cb;
+  --blush: #f7e6e0;
+  --sage: #e6efe4;
+  --lavender: #ece8f6;
+  /* Brand as text/links (AA on white and on surface) vs. brand as a button fill. */
+  --brand: #0066cc;
+  --brand-fill: #0071e3;
+  --on-brand: #ffffff;
   --brand-soft: #e8f1fc;
-  --good: #1a7f37;
+  --good: #157030;
   --good-soft: #e3f4e8;
-  --fair: #b25000;
+  --fair: #a34a00;
   --fair-soft: #fdf0e3;
-  --focus: #d70015;
+  --focus: #c4000f;
   --focus-soft: #fde7e9;
+  --phone: #1d1d1f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000000;
-    --surface: #1d1d1f;
-    --raised: #2c2c2e;
-    --foreground: #f5f5f7;
-    --muted: #a1a1a6;
-    --line: #424245;
+    --background: #161411;
+    --surface: #221f1b;
+    --raised: #2d2924;
+    --foreground: #f5efe6;
+    --muted: #a9a196;
+    --line: #3d3832;
+    --blush: #2e2220;
+    --sage: #1f2a1f;
+    --lavender: #25222f;
     --brand: #2997ff;
+    --brand-fill: #0071e3;
+    --on-brand: #ffffff;
     --brand-soft: #0b2a4a;
     --good: #30d158;
     --good-soft: #0f2e18;
@@ -33,6 +46,7 @@
     --fair-soft: #33240a;
     --focus: #ff453a;
     --focus-soft: #3a1412;
+    --phone: #2c2c2e;
   }
 }
 
@@ -44,6 +58,8 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-brand: var(--brand);
+  --color-brand-fill: var(--brand-fill);
+  --color-on-brand: var(--on-brand);
   --color-brand-soft: var(--brand-soft);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
@@ -51,16 +67,42 @@
   --color-fair-soft: var(--fair-soft);
   --color-focus: var(--focus);
   --color-focus-soft: var(--focus-soft);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-inter);
+  --color-phone: var(--phone);
+  --color-blush: var(--blush);
+  --color-sage: var(--sage);
+  --color-lavender: var(--lavender);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.011em;
+}
+
+/* Tight tracking belongs to display sizes only; small text stays open. */
+h1,
+h2,
+.display {
+  font-family: var(--font-display);
+  letter-spacing: -0.022em;
+}
+
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* Safari ignores list-style on <summary>. */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
 }
 
 /* Headline gradient used sparingly, Apple-style. */
@@ -71,10 +113,16 @@ body {
   color: transparent;
 }
 
+@media (prefers-color-scheme: dark) {
+  .text-gradient {
+    background-image: linear-gradient(90deg, #4aa8ff 0%, #b18cff 50%, #ff7aa8 100%);
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -83,11 +131,32 @@ body {
 }
 
 .rise {
-  animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Pre-paint swap (see layout.tsx): returning visitors see a blank app shell instead of the landing page. */
+html[data-app] .landing {
+  display: none;
+}
+html:not([data-app]) .app-skeleton {
+  display: none;
+}
+
+/* Hide horizontal scrollbars on the tab strip while keeping it scrollable. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
