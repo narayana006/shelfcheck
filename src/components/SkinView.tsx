@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { blobToDataUrl, newId, prepareImage } from "@/lib/client";
 import { CONCERNS, priorities, scoreBand, type ConcernScore, type SkinScan } from "@/lib/skin";
 import { SIMULATABLE } from "@/lib/simulatable";
+import { Camera } from "./Camera";
 import { ShadeCard, SimulationCard } from "./Looks";
 import { Button, Card, ErrorNote, Eyebrow, ScoreBar, Spinner } from "./ui";
 
@@ -14,8 +15,8 @@ const CHIP = {
 };
 
 export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: (s: SkinScan) => void }) {
-  const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [rescanning, setRescanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function scan(file: File) {
@@ -41,25 +42,12 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
       setError(e instanceof Error ? e.message : "The scan failed.");
     } finally {
       setBusy(false);
-      if (input.current) input.current.value = "";
     }
   }
-
-  const picker = (
-    <input
-      ref={input}
-      type="file"
-      accept="image/jpeg,image/png"
-      capture="user"
-      className="hidden"
-      onChange={(e) => e.target.files?.[0] && scan(e.target.files[0])}
-    />
-  );
 
   if (!latest) {
     return (
       <div className="grid gap-5">
-        {picker}
         <div className="pt-4">
           <h1 className="pt-6 text-[clamp(40px,7vw,64px)] font-semibold leading-[1.02] text-balance sm:pt-10">Know what your skin needs before you buy.</h1>
           <p className="mt-4 text-muted">
@@ -69,19 +57,9 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
         </div>
         <Card>
           <Eyebrow>Step 1 · Skin scan</Eyebrow>
-          <ul className="mt-3 grid gap-2 text-sm text-muted">
-            <li>• Face a window or bright, even light</li>
-            <li>• Remove glasses, pull hair back</li>
-            <li>• Hold the phone close so your face fills the frame</li>
-          </ul>
+          <p className="mt-2 text-[15px] text-muted">Face a window or bright, even light. Remove glasses and pull hair back.</p>
           <div className="mt-5">
-            {busy ? (
-              <Spinner label="Analyzing your skin… this takes about 20 seconds" />
-            ) : (
-              <Button onClick={() => input.current?.click()} className="w-full">
-                Take a selfie
-              </Button>
-            )}
+            <Camera onPhoto={scan} busy={busy} />
           </div>
           {error && <div className="mt-4"><ErrorNote>{error}</ErrorNote></div>}
           <p className="mt-4 text-xs text-muted">Your photo is sent to YouCam for analysis only. Results stay on this device.</p>
@@ -96,7 +74,6 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
 
   return (
     <div className="grid gap-5">
-      {picker}
       {latest.sample && (
         <p className="rounded-2xl bg-fair-soft p-3 text-sm text-fair">Sample results shown. Connect a YouCam API key for a real scan.</p>
       )}
@@ -143,10 +120,15 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
       </Card>
 
       {error && <ErrorNote>{error}</ErrorNote>}
-      {busy ? (
+      {rescanning ? (
+        <Card>
+          <Eyebrow>Rescan</Eyebrow>
+          <Camera onPhoto={scan} busy={busy} />
+        </Card>
+      ) : busy ? (
         <Spinner label="Analyzing your skin…" />
       ) : (
-        <Button variant="secondary" onClick={() => input.current?.click()}>
+        <Button variant="secondary" onClick={() => setRescanning(true)}>
           Rescan to track progress
         </Button>
       )}
