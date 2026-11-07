@@ -146,9 +146,15 @@ export interface RefundResult {
  * PayPal, so only an item that was actually bought can be refunded, at the price actually paid.
  * The idempotency key makes a second tap for the same item return the same refund.
  */
-export async function refundItem(orderId: string, productId: string): Promise<RefundResult> {
+export const GUARANTEE_DAYS = 30;
+
+export async function refundItem(orderId: string, productId: string, reason?: string): Promise<RefundResult> {
   const { result: order } = await orders().getOrder({ id: orderId });
   if (String(order.status) !== "COMPLETED") throw new PayPalError("Only completed orders can be refunded.");
+  const placed = order.createTime ? Date.parse(order.createTime) : Date.now();
+  if (Date.now() - placed > GUARANTEE_DAYS * 24 * 3600 * 1000) {
+    throw new PayPalError(`The reaction guarantee covers ${GUARANTEE_DAYS} days from purchase.`);
+  }
   const unit = order.purchaseUnits?.[0];
   const item = unit?.items?.find((i) => i.sku === productId);
   const capture = unit?.payments?.captures?.[0];
@@ -160,7 +166,7 @@ export async function refundItem(orderId: string, productId: string): Promise<Re
     prefer: "return=representation",
     body: {
       amount: { currencyCode: "USD", value },
-      noteToPayer: `ShelfCheck reaction guarantee: ${item.name}`.slice(0, 255),
+      noteToPayer: `ShelfCheck reaction guarantee: ${item.name}${reason ? ` (${reason})` : ""}`.slice(0, 255),
     },
   });
   return { refundId: String(result.id), status: String(result.status), amount: `${value} USD`, product: item.name };

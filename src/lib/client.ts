@@ -12,6 +12,8 @@ export interface SavedCheck {
 /** A paid order and (optionally) its refill subscription, kept on-device. */
 export interface SavedOrder {
   orderId: string;
+  /** Server-signed proof that this browser paid for the order (required for refunds and refills). */
+  token?: string;
   captureId?: string;
   paidAt: string;
   total: number;
@@ -19,7 +21,13 @@ export interface SavedOrder {
   refunded: Record<string, string>;
   /** The agent's proposed refill cadence, offered until the shopper subscribes. */
   proposal?: { intervalWeeks: number; reason: string };
-  subscription?: { id: string; intervalWeeks: number; status: string; nextBilling?: string };
+  subscription?: { id: string; token?: string; intervalWeeks: number; status: string; nextBilling?: string; planId?: string };
+  /** Plan the shopper is moving the refill to, awaiting PayPal approval. */
+  pendingRevision?: {
+    planId: string;
+    lines: { productId: string; quantity: number }[];
+    swaps?: { fromId: string; toItem: { productId: string; brand: string; name: string; category: string; price: number; image?: string } }[];
+  };
 }
 
 const SCANS_KEY = "shelfcheck.scans";

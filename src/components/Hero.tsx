@@ -1,4 +1,4 @@
-import { Check, ScanFace, ShieldCheck, Wallet, X } from "lucide-react";
+import { Check, RefreshCw, ScanFace, ShieldCheck, Undo2, Wallet, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { Button } from "./ui";
 
@@ -35,12 +35,29 @@ const BANDS = [
     title: "The agent checks out. You decide.",
     body: "It keeps to your budget, creates the PayPal order and proposes when to refill. PayPal holds every dollar until you say yes.",
   },
+  {
+    tone: "cream",
+    icon: Undo2,
+    stat: "30",
+    statLabel: "day reaction guarantee",
+    title: "Reacted? Refunded, and replaced.",
+    body: "If a product disagrees with your skin, refund just that item through PayPal. If it's on auto-refill, the agent swaps it out before the next one ships.",
+  },
+  {
+    tone: "light",
+    icon: RefreshCw,
+    stat: "6",
+    statLabel: "weeks, then it checks again",
+    title: "Re-checked before every refill.",
+    body: "Skin changes with the seasons. Rescan, and the agent re-scores your routine against your new skin, proposes swaps, and updates your PayPal subscription when you approve.",
+  },
 ] as const;
 
 const TONE = {
   light: "bg-blush text-foreground",
   surface: "bg-sage text-foreground",
   dark: "bg-lavender text-foreground",
+  cream: "bg-surface text-foreground",
 };
 
 export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () => void }) {
@@ -119,7 +136,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
                   ))}
                 </ul>
                 <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[#6e6e73]">
-                  <X className="h-3.5 w-3.5 text-[#c4000f]" strokeWidth={2.5} aria-hidden /> Ruled out 6 products that aggravate
+                  <X className="h-3.5 w-3.5 text-[#c4000f]" strokeWidth={2.5} aria-hidden /> Ruled out 8 products that aggravate
                   redness
                 </p>
                 <div className="mt-4 rounded-full bg-[#ffc439] py-3 text-center text-[15px] font-semibold text-[#003087]">

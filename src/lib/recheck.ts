@@ -20,6 +20,8 @@ export interface Swap {
   toId: string;
   to: string;
   reason: string;
+  /** The replacement's catalog details, so the client can update the saved routine. */
+  toItem: { productId: string; brand: string; name: string; category: string; price: number; image?: string };
 }
 
 export interface RecheckResult {
@@ -36,13 +38,20 @@ const SYSTEM = `You are ShelfCheck's routine keeper. A shopper has a skincare ro
 
 How to work:
 - Call check_fit on every product in the current routine first.
-- Keep products that still fit. Only swap a product if it is now "caution", or clearly worse than an alternative in the same category for the new scan.
+- Keep products that still fit. Only swap a product if it is now "caution", was excluded because the shopper reacted to it, or is clearly worse than an alternative in the same category for the new scan.
+- Excluded products must be replaced with another product from the same category.
 - For a swap, search that category and check_fit candidates. Never choose a "caution" product.
 - Keep the refill price close: the new total may be at most 15% above the current total.
 - Call propose_routine once with the full routine (swapped and kept products). If nothing needs to change, propose the same routine with no swaps and say so.
 - Each swap reason is one sentence naming the new scan's concern and score and the ingredient that matters.`;
 
-export async function runRecheck(current: RoutineLine[], scores: ConcernScore[], emit: (e: RecheckEvent) => void): Promise<RecheckResult> {
+export async function runRecheck(
+  current: RoutineLine[],
+  scores: ConcernScore[],
+  emit: (e: RecheckEvent) => void,
+  excludeIds: string[] = [],
+): Promise<RecheckResult> {
+  const excluded = new Set(excludeIds);
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("The server is missing its ANTHROPIC_API_KEY.");
   const { total: oldTotal } = priceCart(current);
   const cap = Math.round(oldTotal * 1.15 * 100) / 100;
@@ -54,10 +63,11 @@ export async function runRecheck(current: RoutineLine[], scores: ConcernScore[],
     inputSchema: z.object({ product_ids: z.array(z.string()).min(1).max(12) }),
     run: async ({ product_ids }) => {
       emit({ type: "step", text: `Re-checking ${product_ids.length} products against your new scan` });
-      return JSON.stringify(
+      const out = JSON.stringify(
         product_ids.map((id) => {
           const p = getProduct(id);
           if (!p) return { id, error: "not in store" };
+          if (excluded.has(id)) return { id, name: `${p.brand} ${p.name}`, category: p.category, excluded: "shopper reacted to it and was refunded" };
           const f = fitFor(p, scores);
           if (f.verdict === "caution" && current.some((l) => l.productId === id)) {
             emit({ type: "step", text: `${p.brand} ${p.name} no longer fits: ${f.aggravates[0] ?? "poor fit"}` });
@@ -65,6 +75,8 @@ export async function runRecheck(current: RoutineLine[], scores: ConcernScore[],
           return { id, name: `${p.brand} ${p.name}`, category: p.category, price: p.price, ...f };
         }),
       );
+      emit({ type: "step", text: "Weighing the options on fit and price" });
+      return out;
     },
   });
 
@@ -92,11 +104,29 @@ export async function runRecheck(current: RoutineLine[], scores: ConcernScore[],
       for (const l of lines) {
         const p = getProduct(l.product_id);
         if (!p) return `${l.product_id} is not in the store. Fix and call again.`;
+        if (excluded.has(p.id)) {
+          emit({ type: "step", text: `Refused ${p.brand} ${p.name}: you reacted to it` });
+          return `${p.name} was refunded because the shopper reacted to it. Replace it and call again.`;
+        }
         if (fitFor(p, scores).verdict === "caution") {
           emit({ type: "step", text: `Refused ${p.brand} ${p.name}: fails your new skin check` });
           return `${p.name} is "caution" for the new scan. Replace it and call again.`;
         }
       }
+      // Every step of the routine stays covered: the refill can't silently drop a category.
+      const categoriesNow = new Set(lines.map((l) => getProduct(l.product_id)!.category));
+      const missing = [...new Set(current.map((l) => getProduct(l.productId)?.category).filter(Boolean))].filter((c) => !categoriesNow.has(c!));
+      if (missing.length) return `The routine must still include a ${missing.join(" and a ")}. Fix and call again.`;
+      // The swap list must describe exactly what changed, so the screen and PayPal never disagree.
+      const before = new Set(current.map((l) => l.productId));
+      const after = new Set(lines.map((l) => l.product_id));
+      const removed = [...before].filter((id) => !after.has(id));
+      const added = [...after].filter((id) => !before.has(id));
+      const swapsOk =
+        swaps.length === removed.length &&
+        swaps.every((s) => before.has(s.from_id) && !after.has(s.from_id) && after.has(s.to_id) && !before.has(s.to_id)) &&
+        added.every((id) => swaps.some((s) => s.to_id === id));
+      if (!swapsOk) return "The swaps list must name exactly each removed product and its replacement. Fix and call again.";
       const newLines = lines.map((l) => ({ productId: l.product_id, quantity: l.quantity }));
       const { total } = priceCart(newLines);
       if (total > cap) {
@@ -110,7 +140,14 @@ export async function runRecheck(current: RoutineLine[], scores: ConcernScore[],
           .map((s) => {
             const a = getProduct(s.from_id)!;
             const b = getProduct(s.to_id)!;
-            return { fromId: a.id, from: `${a.brand} ${a.name}`, toId: b.id, to: `${b.brand} ${b.name}`, reason: s.reason };
+            return {
+              fromId: a.id,
+              from: `${a.brand} ${a.name}`,
+              toId: b.id,
+              to: `${b.brand} ${b.name}`,
+              reason: s.reason,
+              toItem: { productId: b.id, brand: b.brand, name: b.name, category: b.category, price: b.price, image: b.image },
+            };
           }),
         oldTotal,
         newTotal: total,
@@ -134,7 +171,7 @@ export async function runRecheck(current: RoutineLine[], scores: ConcernScore[],
     messages: [
       {
         role: "user",
-        content: `Current routine: ${JSON.stringify(current.map((l) => ({ product_id: l.productId, quantity: l.quantity })))}\nCurrent refill total: $${oldTotal.toFixed(2)} (limit $${cap.toFixed(2)})\nNew skin scan: ${JSON.stringify(scores)}\nFocus areas now: ${focus.join(", ")}`,
+        content: `Current routine: ${JSON.stringify(current.map((l) => ({ product_id: l.productId, quantity: l.quantity })))}\n${excluded.size ? `Excluded (shopper reacted, refunded; must be replaced): ${JSON.stringify([...excluded])}\n` : ""}Current refill total: $${oldTotal.toFixed(2)} (limit $${cap.toFixed(2)})\nNew skin scan: ${JSON.stringify(scores)}\nFocus areas now: ${focus.join(", ")}`,
       },
     ],
   });

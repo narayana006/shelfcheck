@@ -50,8 +50,27 @@ export const SAMPLE_SCORES: Record<Concern, number> = {
   firmness: 85,
 };
 
-export function sampleScores(): ConcernScore[] {
-  return CONCERN_KEYS.map((c) => ({ concern: c, score: SAMPLE_SCORES[c] }));
+/**
+ * The same sample person six weeks later: redness and breakouts calmed, but skin has turned dry
+ * and dull (a common winter shift). Used to demo the agent re-checking a refill.
+ */
+export const SAMPLE_SCORES_LATER: Record<Concern, number> = {
+  acne: 80,
+  redness: 74,
+  oiliness: 86,
+  moisture: 38,
+  pore: 70,
+  texture: 52,
+  wrinkle: 80,
+  age_spot: 74,
+  dark_circle_v2: 64,
+  radiance: 55,
+  firmness: 84,
+};
+
+export function sampleScores(when: "now" | "later" = "now"): ConcernScore[] {
+  const s = when === "later" ? SAMPLE_SCORES_LATER : SAMPLE_SCORES;
+  return CONCERN_KEYS.map((c) => ({ concern: c, score: s[c] }));
 }
 
 /** Concerns that need the most attention first (lowest scores). */

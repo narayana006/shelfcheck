@@ -66,10 +66,11 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
     }
   }
 
-  function onPaid(r: CaptureResult) {
+  function onPaid(r: CaptureResult & { token?: string }) {
     if (!cart) return;
     const order: SavedOrder = {
       orderId: r.orderId,
+      token: r.token,
       captureId: r.captureId,
       paidAt: new Date().toISOString(),
       total: cart.total,

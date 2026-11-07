@@ -119,6 +119,9 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
         }
         return { id, name: `${p.brand} ${p.name}`, price: p.price, ...f };
       });
+      const passing = rows.filter((r) => "verdict" in r && r.verdict !== "caution").length;
+      // The model thinks for a while after the last check; say what it's doing so the trace never looks frozen.
+      emit({ type: "step", text: `Weighing ${passing} products that passed on fit and price` });
       return JSON.stringify(rows);
     },
   });

@@ -13,6 +13,7 @@ const BodySchema = z.object({
     .min(1)
     .max(8),
   scores: z.array(z.object({ concern: z.enum(CONCERN_KEYS), score: z.number().min(0).max(100) })).min(1),
+  excludeIds: z.array(z.string().regex(/^\d{8,14}$/)).max(8).default([]),
 });
 
 /** Before a refill ships: the agent re-checks the routine against the shopper's newest scan. */
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     async start(controller) {
       const emit = (e: RecheckEvent) => controller.enqueue(encoder.encode(JSON.stringify(e) + "\n"));
       try {
-        emit({ type: "result", result: await runRecheck(parsed.data.lines, parsed.data.scores, emit) });
+        emit({ type: "result", result: await runRecheck(parsed.data.lines, parsed.data.scores, emit, parsed.data.excludeIds) });
       } catch (e) {
         console.error(e);
         const message =

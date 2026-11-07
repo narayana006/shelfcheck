@@ -2,10 +2,10 @@
 
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { ArrowRight, CalendarClock, RefreshCw, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { updateOrder, type SavedOrder } from "@/lib/client";
 import type { RecheckEvent, RecheckResult } from "@/lib/recheck";
-import type { SkinScan } from "@/lib/skin";
+import { sampleScores, type ConcernScore, type SkinScan } from "@/lib/skin";
 import { postStream } from "@/lib/stream";
 import { Button, CardTitle, ErrorNote, Eyebrow, Spinner } from "../ui";
 import { ProductImage } from "./CartPanel";
@@ -16,6 +16,14 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   const json = await res.json();
   if (!res.ok) throw new Error(json.error);
   return json as T;
+}
+
+async function fetchSubscription(order: SavedOrder, id: string) {
+  const qs = new URLSearchParams({ subscription: id, order: order.orderId, token: order.token ?? "" });
+  const res = await fetch(`/api/paypal/refill?${qs}`);
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error);
+  return body as { id: string; status: string; planId?: string; nextBilling?: string; token: string };
 }
 
 /** Opt into the agent's proposed refill cadence with PayPal Subscriptions. */
@@ -39,7 +47,7 @@ function RefillSetup({
     setBusy(true);
     setError(null);
     try {
-      const { planId } = await postJson<{ planId: string }>("/api/paypal/refill", { orderId: order.orderId, intervalWeeks });
+      const { planId } = await postJson<{ planId: string }>("/api/paypal/refill", { orderId: order.orderId, token: order.token, intervalWeeks });
       setPlanId(planId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't set up the refill.");
@@ -73,10 +81,12 @@ function RefillSetup({
                 })
               }
               onApprove={async (data) => {
-                const res = await fetch(`/api/paypal/refill?subscription=${encodeURIComponent(data.subscriptionID ?? "")}`);
-                const body = await res.json();
-                if (!res.ok) setError(body.error);
-                else onActive({ id: body.id, status: body.status, nextBilling: body.nextBilling, intervalWeeks });
+                try {
+                  const s = await fetchSubscription(order, data.subscriptionID ?? "");
+                  onActive({ id: s.id, token: s.token, status: s.status, nextBilling: s.nextBilling, planId: s.planId, intervalWeeks });
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Couldn't verify the subscription.");
+                }
               }}
               onError={() => setError("PayPal hit a problem setting up the refill.")}
             />
@@ -92,25 +102,39 @@ function RefillSetup({
   );
 }
 
-/** Before the next refill ships, the agent re-checks the routine against the newest scan. */
-function Recheck({ order, scan, onRevised }: { order: SavedOrder; scan: SkinScan; onRevised: () => void }) {
+/**
+ * Before the next refill ships, the agent re-checks the routine against a new scan, and replaces
+ * anything the shopper was refunded for. Approved changes revise the PayPal subscription.
+ */
+function Recheck({
+  order,
+  scan,
+  autoStart,
+  onChange,
+}: {
+  order: SavedOrder;
+  scan: SkinScan;
+  autoStart: boolean;
+  onChange: (orders: SavedOrder[]) => void;
+}) {
   const [steps, setSteps] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RecheckResult | null>(null);
-  const [approveUrl, setApproveUrl] = useState<string | null>(null);
+  const [usedScores, setUsedScores] = useState<ConcernScore[]>(scan.scores);
   const [error, setError] = useState<string | null>(null);
   const sub = order.subscription!;
+  const excludeIds = Object.keys(order.refunded);
 
-  async function run() {
+  async function run(scores: ConcernScore[]) {
     setRunning(true);
     setSteps([]);
     setResult(null);
-    setApproveUrl(null);
     setError(null);
+    setUsedScores(scores);
     try {
       await postStream<RecheckEvent>(
         "/api/routine/recheck",
-        { lines: order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })), scores: scan.scores },
+        { lines: order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })), scores, excludeIds },
         (e) => {
           if (e.type === "step") setSteps((s) => [...s, e.text]);
           else if (e.type === "result") setResult(e.result);
@@ -124,17 +148,30 @@ function Recheck({ order, scan, onRevised }: { order: SavedOrder; scan: SkinScan
     }
   }
 
+  // A refund on a refilled routine immediately asks the agent to replace that product.
+  useEffect(() => {
+    if (autoStart) run(scan.scores);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
   async function revise() {
     if (!result) return;
     setError(null);
     try {
-      const body = await postJson<{ approveUrl: string }>("/api/routine/revise", {
+      const body = await postJson<{ approveUrl: string; planId: string }>("/api/routine/revise", {
         subscriptionId: sub.id,
+        token: sub.token,
         intervalWeeks: sub.intervalWeeks,
+        excludeIds,
         lines: result.lines,
-        scores: scan.scores,
+        scores: usedScores,
       });
-      setApproveUrl(body.approveUrl);
+      onChange(
+        updateOrder(order.orderId, (o) => ({
+          ...o,
+          pendingRevision: { planId: body.planId, lines: result.lines, swaps: result.swaps.map((s) => ({ fromId: s.fromId, toItem: s.toItem })) },
+        })),
+      );
       window.open(body.approveUrl, "_blank", "noopener");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't update the refill.");
@@ -144,15 +181,24 @@ function Recheck({ order, scan, onRevised }: { order: SavedOrder; scan: SkinScan
   return (
     <div className="grid gap-4">
       {!running && !result && (
-        <Button variant="secondary" onClick={run} className="w-full">
-          <RefreshCw className="h-4 w-4" strokeWidth={2} aria-hidden /> Re-check my refill against my latest scan
-        </Button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button variant="secondary" onClick={() => run(scan.scores)}>
+            <RefreshCw className="h-4 w-4" strokeWidth={2} aria-hidden /> Re-check my refill
+          </Button>
+          {scan.sample && (
+            <Button variant="secondary" onClick={() => run(sampleScores("later"))}>
+              Simulate a re-scan 6 weeks later
+            </Button>
+          )}
+        </div>
       )}
-      {(running || steps.length > 0) && <Trace steps={steps} running={running} title="Before your next refill" />}
+      {(running || steps.length > 0) && (
+        <Trace steps={steps} running={running} title="Before your next refill" runningLabel="Re-checking your routine…" />
+      )}
       {result && (
         <div className="rise rounded-3xl bg-lavender p-5 sm:p-6">
           <h3 className="text-[19px] font-semibold">
-            {result.swaps.length ? `${result.swaps.length} change${result.swaps.length > 1 ? "s" : ""} for your new skin` : "Your routine still fits"}
+            {result.swaps.length ? `${result.swaps.length} change${result.swaps.length > 1 ? "s" : ""} to your next refill` : "Your routine still fits"}
           </h3>
           <p className="mt-1 text-[15px] text-muted">{result.summary}</p>
           {result.swaps.length > 0 && (
@@ -172,16 +218,8 @@ function Recheck({ order, scan, onRevised }: { order: SavedOrder; scan: SkinScan
               <p className="mt-4 text-[15px]">
                 Refill price ${result.oldTotal.toFixed(2)} → <strong>${result.newTotal.toFixed(2)}</strong>
               </p>
-              {approveUrl ? (
-                <div className="mt-4 grid gap-2">
-                  <p className="text-[15px] text-muted">Approve the change in the PayPal window, then come back.</p>
-                  <a href={approveUrl} target="_blank" rel="noopener noreferrer" className="text-brand underline-offset-4 hover:underline">
-                    Reopen PayPal approval ›
-                  </a>
-                  <Button onClick={onRevised} className="mt-2 w-full">
-                    I approved it
-                  </Button>
-                </div>
+              {order.pendingRevision ? (
+                <p className="mt-4 text-[15px] text-muted">Approve the change in the PayPal window, then confirm below.</p>
               ) : (
                 <Button onClick={revise} className="mt-4 w-full">
                   Update my refill in PayPal
@@ -213,13 +251,20 @@ export function OrderCard({
   const [refunding, setRefunding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [recheckAfterRefund, setRecheckAfterRefund] = useState(0);
 
   async function refund(productId: string) {
     setRefunding(productId);
     setError(null);
     try {
-      const r = await postJson<{ amount: string }>("/api/paypal/refund", { orderId: order.orderId, productId });
+      const r = await postJson<{ amount: string }>("/api/paypal/refund", {
+        orderId: order.orderId,
+        token: order.token,
+        productId,
+        reason: "skin reaction",
+      });
       onChange(updateOrder(order.orderId, (o) => ({ ...o, refunded: { ...o.refunded, [productId]: r.amount } })));
+      if (order.subscription?.status === "ACTIVE") setRecheckAfterRefund((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Refund failed.");
     } finally {
@@ -227,14 +272,29 @@ export function OrderCard({
     }
   }
 
+  /** Confirm PayPal moved the subscription to the new plan, then update the saved routine. */
   async function verifyRevision() {
-    if (!order.subscription) return;
+    if (!order.subscription || !order.pendingRevision) return;
     setVerifying(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/paypal/refill?subscription=${encodeURIComponent(order.subscription.id)}`);
-      const s = await res.json();
-      if (!res.ok) throw new Error(s.error);
-      onChange(updateOrder(order.orderId, (o) => ({ ...o, subscription: { ...o.subscription!, status: s.status, nextBilling: s.nextBilling } })));
+      const s = await fetchSubscription(order, order.subscription.id);
+      const pending = order.pendingRevision;
+      if (s.planId !== pending.planId) {
+        setError("PayPal hasn't switched the refill yet. Approve the change in the PayPal window and try again.");
+        return;
+      }
+      onChange(
+        updateOrder(order.orderId, (o) => ({
+          ...o,
+          items: o.items.map((i) => {
+            const swap = pending.swaps?.find((sw) => sw.fromId === i.productId);
+            return swap ? { ...swap.toItem, quantity: i.quantity } : i;
+          }),
+          subscription: { ...o.subscription!, status: s.status, nextBilling: s.nextBilling, planId: s.planId },
+          pendingRevision: undefined,
+        })),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't verify with PayPal.");
     } finally {
@@ -242,13 +302,23 @@ export function OrderCard({
     }
   }
 
+  // Coming back from PayPal's approval page (?revised=<subscription id>) confirms automatically.
+  useEffect(() => {
+    const revised = new URLSearchParams(window.location.search).get("revised");
+    if (revised && revised === order.subscription?.id && order.pendingRevision) {
+      verifyRevision();
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <section className="rise grid gap-5 rounded-[28px] bg-surface p-6 sm:p-8">
       <div>
-        <Eyebrow>Order {order.orderId} · {new Date(order.paidAt).toLocaleDateString()}</Eyebrow>
-        <CardTitle>
-          Paid ${order.total.toFixed(2)} with PayPal
-        </CardTitle>
+        <Eyebrow>
+          Order {order.orderId} · {new Date(order.paidAt).toLocaleDateString()}
+        </Eyebrow>
+        <CardTitle>Paid ${order.total.toFixed(2)} with PayPal</CardTitle>
         {order.captureId && <p className="mt-1 font-mono text-[13px] text-muted">Capture {order.captureId}</p>}
       </div>
 
@@ -266,7 +336,7 @@ export function OrderCard({
               </div>
               {refunded ? (
                 <span className="rounded-full bg-good-soft px-3 py-1 text-xs font-semibold text-good">Refunded {refunded}</span>
-              ) : (
+              ) : order.token ? (
                 <button
                   onClick={() => refund(i.productId)}
                   disabled={refunding !== null}
@@ -275,14 +345,14 @@ export function OrderCard({
                   <Undo2 className="h-4 w-4" aria-hidden />
                   {refunding === i.productId ? "Refunding…" : "Reacted? Refund"}
                 </button>
-              )}
+              ) : null}
             </li>
           );
         })}
       </ul>
       <p className="-mt-2 text-[13px] text-muted">
-        Reaction guarantee: if a product disagrees with your skin, refund it here. Opened skincare usually can&apos;t be returned; this
-        refunds that item through PayPal.
+        Reaction guarantee: if a product disagrees with your skin within 30 days, refund that item here through PayPal. If it&apos;s
+        on auto-refill, the shopper replaces it before your next refill.
       </p>
 
       {order.subscription ? (
@@ -301,12 +371,17 @@ export function OrderCard({
           </div>
           {order.subscription.status === "ACTIVE" && (
             <div className="mt-5">
-              <Recheck order={order} scan={scan} onRevised={verifyRevision} />
+              <Recheck key={recheckAfterRefund} order={order} scan={scan} autoStart={recheckAfterRefund > 0} onChange={onChange} />
             </div>
+          )}
+          {order.pendingRevision && (
+            <Button onClick={verifyRevision} disabled={verifying} className="mt-4 w-full">
+              {verifying ? "Checking with PayPal…" : "I approved the change in PayPal"}
+            </Button>
           )}
           {verifying && <div className="mt-3"><Spinner label="Checking with PayPal…" /></div>}
         </div>
-      ) : proposal && clientId ? (
+      ) : proposal && clientId && order.token ? (
         <RefillSetup
           order={order}
           proposal={proposal}

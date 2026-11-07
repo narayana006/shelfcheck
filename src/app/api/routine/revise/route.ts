@@ -2,6 +2,7 @@ import * as z from "zod/v4";
 import { rateLimited, tooMany } from "@/lib/limit";
 import { getProduct } from "@/lib/catalog";
 import { fitFor } from "@/lib/shopper";
+import { verify } from "@/lib/sign";
 import { CONCERN_KEYS } from "@/lib/skin";
 import { getSubscription, PayPalError, planForLines, reviseSubscription } from "@/lib/subscriptions";
 
@@ -9,7 +10,10 @@ export const runtime = "nodejs";
 
 const BodySchema = z.object({
   subscriptionId: z.string().regex(/^I-[A-Z0-9]{8,20}$/),
+  token: z.string().max(100),
   intervalWeeks: z.number().int().min(4).max(16),
+  /** Products the shopper reacted to and was refunded for; never allowed back into a refill. */
+  excludeIds: z.array(z.string().regex(/^\d{8,14}$/)).max(8).default([]),
   lines: z
     .array(z.object({ productId: z.string().regex(/^\d{8,14}$/), quantity: z.number().int().min(1).max(5) }))
     .min(1)
@@ -24,12 +28,15 @@ const BodySchema = z.object({
 export async function POST(request: Request) {
   const parsed = BodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid change." }, { status: 400 });
+  const { subscriptionId, token, intervalWeeks, excludeIds, lines, scores } = parsed.data;
+  if (!verify("subscription", subscriptionId, token)) {
+    return Response.json({ error: "Only the subscriber can change this refill." }, { status: 403 });
+  }
   if (rateLimited(request, "revise", 10)) return tooMany();
-  const { subscriptionId, intervalWeeks, lines, scores } = parsed.data;
 
   for (const l of lines) {
     const p = getProduct(l.productId);
-    if (!p || fitFor(p, scores).verdict === "caution") {
+    if (!p || excludeIds.includes(l.productId) || fitFor(p, scores).verdict === "caution") {
       return Response.json({ error: "That routine includes a product that fails your skin check." }, { status: 400 });
     }
   }

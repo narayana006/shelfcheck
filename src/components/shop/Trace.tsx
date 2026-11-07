@@ -4,7 +4,7 @@ type Kind = "read" | "browse" | "check" | "reject" | "pay" | "other";
 
 function kindOf(step: string): Kind {
   if (/^(Ruled out|Checkout refused|Refused)|no longer fits/.test(step)) return "reject";
-  if (/^(Browsing|Looking for)/.test(step)) return "browse";
+  if (/^(Browsing|Looking for|Weighing)/.test(step)) return "browse";
   if (/^(Checking|Re-checking)/.test(step)) return "check";
   if (/PayPal/.test(step)) return "pay";
   if (/^Reading/.test(step)) return "read";
@@ -17,7 +17,17 @@ const ICON = { read: Sparkles, browse: Search, check: ScanLine, reject: ShieldX,
  * The agent's reasoning as a live timeline: every catalog search, ingredient check and
  * code-enforced refusal, as it happens. This is the product's proof that it can be trusted.
  */
-export function Trace({ steps, running, title }: { steps: string[]; running: boolean; title: string }) {
+export function Trace({
+  steps,
+  running,
+  title,
+  runningLabel = "Shopping for your skin…",
+}: {
+  steps: string[];
+  running: boolean;
+  title: string;
+  runningLabel?: string;
+}) {
   const checked = steps
     .filter((s) => /^(Checking|Re-checking) \d+/.test(s))
     .reduce((n, s) => n + Number(s.match(/\d+/)?.[0] ?? 0), 0);
@@ -28,7 +38,7 @@ export function Trace({ steps, running, title }: { steps: string[]; running: boo
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.06em] text-muted">{title}</p>
-          <h2 className="mt-1 text-[22px] font-semibold leading-tight">{running ? "Shopping for your skin…" : "How it decided"}</h2>
+          <h2 className="mt-1 text-[22px] font-semibold leading-tight">{running ? runningLabel : "How it decided"}</h2>
         </div>
         <dl className="flex gap-6 text-right">
           <div>

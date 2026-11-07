@@ -43,6 +43,9 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<T> 
 
 /** One catalog product ("ShelfCheck routine refill") that every refill plan hangs off. */
 async function refillProduct() {
+  // Pinned in production so every server instance hangs plans off the same product (PayPal
+  // only revises a subscription to a plan of the same product).
+  productId ??= process.env.PAYPAL_REFILL_PRODUCT_ID ?? null;
   if (productId) return productId;
   const p = await api<{ id: string }>("POST", "/v1/catalogs/products", {
     name: "ShelfCheck routine refill",

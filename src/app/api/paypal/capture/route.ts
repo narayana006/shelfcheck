@@ -1,6 +1,7 @@
 import * as z from "zod/v4";
 import { rateLimited, tooMany } from "@/lib/limit";
 import { captureOrder, PayPalError } from "@/lib/paypal";
+import { sign } from "@/lib/sign";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,9 @@ export async function POST(request: Request) {
   if (!parsed.success) return Response.json({ error: "Invalid order." }, { status: 400 });
   if (rateLimited(request, "capture", 30)) return tooMany();
   try {
-    return Response.json(await captureOrder(parsed.data.orderId));
+    const result = await captureOrder(parsed.data.orderId);
+    // Only the browser that paid gets this token; refunds and refills require it.
+    return Response.json({ ...result, token: sign("order", result.orderId) });
   } catch (e) {
     console.error(e);
     const message = e instanceof PayPalError ? e.message : "PayPal couldn't complete the payment.";

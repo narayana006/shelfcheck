@@ -14,7 +14,9 @@ People with sensitive, acne-prone or redness-prone skin buy skincare by trial an
 2. **Shops for you.** Ask in plain words: *"Build me a full routine under $60"*. The agent searches the store, checks every ingredient list against your scores, rules out what would aggravate your weak spots, and builds the cart.
 3. **Checks out with PayPal.** The agent creates a PayPal order (Orders v2). You approve it in PayPal Checkout, and the server captures it. Nothing is charged without you.
 4. **Never lets you run out.** The agent proposes a refill cadence ("the serum runs out first, in about 6 weeks"). Opt in with **PayPal Subscriptions**. The plan is built from your completed order and is cancellable anytime in PayPal.
-5. **Plus:** barcode or label check for any product, the 26 EU-listed fragrance allergens flagged, skin simulation of your goal, shade match and makeup try-on.
+5. **Reacted? Refunded, and replaced.** If a product disagrees with your skin within 30 days, refund just that item through PayPal. If it's on auto-refill, the agent immediately finds a replacement and, once you approve, revises your PayPal subscription.
+6. **Re-checked before every refill.** Rescan (or, in the demo, "Simulate a re-scan 6 weeks later"), and the agent re-scores your routine against your new skin and proposes swaps.
+7. **Plus:** barcode or label check for any product, the 26 EU-listed fragrance allergens flagged, skin simulation of your goal, shade match and makeup try-on.
 
 ## Trust: the AI chooses, code enforces
 
@@ -40,7 +42,10 @@ flowchart LR
 | Prices come only from the server catalog | `priceCart()` in `src/lib/paypal.ts` |
 | Paid means PayPal says `COMPLETED` | `captureOrder()` checks order and capture status |
 | Refills only for completed orders, one plan per order and cadence | `src/lib/subscriptions.ts` reads the order back from PayPal |
-| A human approves every payment and every subscription | PayPal Buttons (`src/components/ShopView.tsx`) |
+| A human approves every payment, subscription and subscription change | PayPal Buttons and approval links (`src/components/shop/CartPanel.tsx`, `src/components/shop/OrderCard.tsx`) |
+| Only the shopper who paid can refund, set up or change a refill | server-signed order/subscription tokens (`src/lib/sign.ts`) required by refund, refill and revise routes |
+| Refunds only for items actually in the order, at the price paid, within 30 days, once per item | `refundItem()` reads the order from PayPal; `PayPal-Request-Id` per item |
+| A refunded product can never return in a refill; the re-check must keep every routine step and stay within +15% of the refill price | `propose_routine` gate in `src/lib/recheck.ts`, re-validated in `src/app/api/routine/revise/route.ts` |
 
 Every product the agent rules out is shown in the cart with its reason, so you can see the guardrails working.
 
@@ -52,7 +57,9 @@ Every product the agent rules out is shown in the cart with its reason, so you c
 | Buyer approval | PayPal JS SDK Buttons via `@paypal/react-paypal-js` |
 | Capture with status verification | Orders v2 capture |
 | Refill product and billing plan, created from the completed order | Catalog Products API + Billing Plans API |
-| Subscription approval and verification | JS SDK subscription buttons + `GET /v1/billing/subscriptions/{id}` |
+| Subscription approval (first refill starts one interval later) and verification | JS SDK subscription buttons + `GET /v1/billing/subscriptions/{id}` |
+| Reaction-guarantee refund of a single item | Payments v2 `POST /v2/payments/captures/{id}/refund` (partial, idempotent) |
+| Swapping products in an active refill after the agent's re-check | Subscriptions `POST /v1/billing/subscriptions/{id}/revise` with buyer approval, then plan verified |
 
 Runs against the PayPal **sandbox**: a demo store with illustrative prices and test money only.
 
