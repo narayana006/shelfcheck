@@ -9,7 +9,16 @@ import { Button, ErrorNote } from "./ui";
  * Crops to a 3:4 portrait around the guide so the face fills most of the frame (what YouCam needs).
  * Falls back to a file upload when the browser has no camera or permission is denied.
  */
-export function Camera({ onPhoto, busy }: { onPhoto: (file: File) => void; busy: boolean }) {
+export function Camera({
+  onPhoto,
+  busy,
+  rejected,
+}: {
+  onPhoto: (file: File) => void;
+  busy: boolean;
+  /** Why the last photo was rejected (e.g. face out of frame); reopens the camera with this hint. */
+  rejected?: string | null;
+}) {
   const video = useRef<HTMLVideoElement>(null);
   const upload = useRef<HTMLInputElement>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -23,6 +32,12 @@ export function Camera({ onPhoto, busy }: { onPhoto: (file: File) => void; busy:
   }
 
   useEffect(() => stop, []);
+
+  // A rejected photo goes straight back to the live camera, so a retake is one tap.
+  useEffect(() => {
+    if (rejected && state === "review") retake();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rejected]);
 
   async function start() {
     setError(null);
@@ -112,10 +127,13 @@ export function Camera({ onPhoto, busy }: { onPhoto: (file: File) => void; busy:
         {state === "live" && (
           <>
             <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
-              <div className="h-[64%] w-[72%] rounded-[50%] border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+              <div className="h-[54%] w-[62%] -translate-y-[3%] rounded-[50%] border-2 border-white/85 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
             </div>
-            <p className="pointer-events-none absolute inset-x-0 top-4 text-center text-[14px] font-medium text-white drop-shadow">
-              Fit your face in the oval · even light · no glasses
+            <p className="pointer-events-none absolute inset-x-4 top-4 text-center text-[14px] font-medium text-white drop-shadow">
+              {rejected ?? "Face the camera. Keep your chin and forehead inside the oval."}
+            </p>
+            <p className="pointer-events-none absolute inset-x-4 bottom-4 text-center text-[13px] text-white/85 drop-shadow">
+              Even light · no glasses · hair off your face
             </p>
           </>
         )}

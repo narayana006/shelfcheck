@@ -9,10 +9,10 @@ import { CardTitle, ErrorNote, Eyebrow, VerdictPill } from "../ui";
 
 function ProductImage({ src, size = 88 }: { src?: string; size?: number }) {
   return (
-    <div className="grid shrink-0 place-items-center rounded-3xl bg-raised p-2" style={{ width: size, height: size }}>
+    <div className="shrink-0 overflow-hidden rounded-3xl bg-raised p-2" style={{ width: size, height: size }}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" width={size - 16} height={size - 16} loading="lazy" decoding="async" className="max-h-full max-w-full object-contain" />
+        <img src={src} alt="" width={size - 16} height={size - 16} loading="lazy" decoding="async" className="block h-full w-full object-contain" />
       ) : null}
     </div>
   );

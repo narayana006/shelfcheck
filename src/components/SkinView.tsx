@@ -59,7 +59,7 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
           <Eyebrow>Step 1 · Skin scan</Eyebrow>
           <p className="mt-2 text-[15px] text-muted">Face a window or bright, even light. Remove glasses and pull hair back.</p>
           <div className="mt-5">
-            <Camera onPhoto={scan} busy={busy} />
+            <Camera onPhoto={scan} busy={busy} rejected={error} />
           </div>
           {error && <div className="mt-4"><ErrorNote>{error}</ErrorNote></div>}
           <p className="mt-4 text-xs text-muted">Your photo is sent to YouCam for analysis only. Results stay on this device.</p>
@@ -123,7 +123,7 @@ export function SkinView({ latest, onScan }: { latest: SkinScan | null; onScan: 
       {rescanning ? (
         <Card>
           <Eyebrow>Rescan</Eyebrow>
-          <Camera onPhoto={scan} busy={busy} />
+          <Camera onPhoto={scan} busy={busy} rejected={error} />
         </Card>
       ) : busy ? (
         <Spinner label="Analyzing your skin…" />
