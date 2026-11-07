@@ -85,6 +85,80 @@ function CartView({ cart, clientId, onPaid }: { cart: Cart; clientId: string | n
   );
 }
 
+/** After payment: opt into the agent's proposed refill cadence with PayPal Subscriptions. */
+function RefillCard({ cart, clientId }: { cart: Cart; clientId: string | null }) {
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [active, setActive] = useState<{ id: string; status: string; nextBilling?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  if (!cart.refill || !clientId) return null;
+  const { intervalWeeks, reason } = cart.refill;
+
+  async function preparePlan() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/paypal/refill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lines: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          intervalWeeks,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error);
+      setPlanId(body.planId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't set up the refill.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <Eyebrow>Never run out</Eyebrow>
+      <p className="mt-2 font-display text-2xl leading-tight">Refill this routine every {intervalWeeks} weeks</p>
+      <p className="mt-2 text-sm text-muted">{reason}</p>
+      <p className="mt-1 text-sm">
+        ${cart.total.toFixed(2)} every {intervalWeeks} weeks · cancel anytime in PayPal
+      </p>
+      <div className="mt-4">
+        {active ? (
+          <p className="rounded-2xl bg-good-soft p-3 text-sm text-good">
+            Auto-refill is <strong>{active.status.toLowerCase()}</strong>
+            {active.nextBilling && <> · next refill {new Date(active.nextBilling).toLocaleDateString()}</>}
+            <span className="mt-1 block font-mono text-xs">{active.id}</span>
+          </p>
+        ) : planId ? (
+          <PayPalScriptProvider
+            key="subscription"
+            options={{ clientId, vault: true, intent: "subscription", components: "buttons" }}
+          >
+            <PayPalButtons
+              style={{ layout: "vertical", shape: "pill", label: "subscribe" }}
+              createSubscription={(_data, actions) => actions.subscription.create({ plan_id: planId })}
+              onApprove={async (data) => {
+                const res = await fetch(`/api/paypal/refill?subscription=${encodeURIComponent(data.subscriptionID ?? "")}`);
+                const body = await res.json();
+                if (!res.ok) setError(body.error);
+                else setActive(body);
+              }}
+              onError={() => setError("PayPal hit a problem setting up the subscription.")}
+            />
+          </PayPalScriptProvider>
+        ) : (
+          <Button variant="secondary" onClick={preparePlan} disabled={busy} className="w-full">
+            {busy ? "Setting up…" : "Set up auto-refill with PayPal"}
+          </Button>
+        )}
+      </div>
+      {error && <div className="mt-3"><ErrorNote>{error}</ErrorNote></div>}
+    </Card>
+  );
+}
+
 export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () => void }) {
   const [request, setRequest] = useState("");
   const [steps, setSteps] = useState<string[]>([]);
@@ -175,6 +249,7 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
             )}
           </dl>
         </Card>
+        {cart && <RefillCard cart={cart} clientId={clientId} />}
         <Button variant="secondary" onClick={() => setPaid(null)}>
           Back to my cart
         </Button>

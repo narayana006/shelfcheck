@@ -28,6 +28,8 @@ export interface Cart {
   summary: string;
   /** PayPal sandbox order id, created by the agent, awaiting the shopper's approval. */
   orderId: string;
+  /** The agent's proposed refill cadence for this routine (offered after payment). */
+  refill?: { intervalWeeks: number; reason: string };
 }
 
 export type ShopEvent = { type: "step"; text: string } | { type: "cart"; cart: Cart } | { type: "error"; message: string };
@@ -42,6 +44,7 @@ How to work:
 - Respect the budget strictly if one is given. One of each category is enough unless asked otherwise.
 - For a routine, order it cleanser → serum → moisturizer → sunscreen.
 - When the cart is right, call create_checkout once. It prices the cart from the store, creates a PayPal order, and the shopper approves payment themselves.
+- Then call propose_refill once: pick how many weeks until this routine needs refilling, using typical usage per category (cleanser ~10 weeks, serum ~6, moisturizer ~8, sunscreen ~6 with daily use). Refill when the first key product runs out.
 - Keep each "why" to one sentence that names the shopper's measured concern and the ingredient that addresses it.`;
 
 function fitFor(p: CatalogProduct, scores: ConcernScore[]) {
@@ -59,6 +62,7 @@ function fitFor(p: CatalogProduct, scores: ConcernScore[]) {
 export async function runShopper(request: string, scores: ConcernScore[], emit: (e: ShopEvent) => void): Promise<Cart> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("The server is missing its ANTHROPIC_API_KEY.");
   let cart: Cart | null = null;
+  let refillDone = false;
 
   const searchProducts = betaZodTool({
     name: "search_products",
@@ -137,6 +141,21 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
     },
   });
 
+  const proposeRefill = betaZodTool({
+    name: "propose_refill",
+    description: "Propose an automatic refill cadence for the cart you just checked out. Call once, after create_checkout.",
+    inputSchema: z.object({
+      interval_weeks: z.number().int().min(4).max(16),
+      reason: z.string().describe("One sentence: which product runs out first and why this cadence"),
+    }),
+    run: async ({ interval_weeks, reason }) => {
+      if (!cart) return "Call create_checkout first.";
+      cart.refill = { intervalWeeks: interval_weeks, reason };
+      refillDone = true;
+      return "Refill proposal saved. The shopper can opt in with PayPal Subscriptions after paying.";
+    },
+  });
+
   const focus = priorities({ id: "", takenAt: "", scores }, 4).map((c) => `${CONCERNS[c.concern]} ${c.score}`);
   emit({ type: "step", text: "Reading your skin scan" });
   const runner = client.beta.messages.toolRunner({
@@ -147,7 +166,7 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     system: SYSTEM,
-    tools: [searchProducts, checkFit, createCheckout],
+    tools: [searchProducts, checkFit, createCheckout, proposeRefill],
     messages: [
       {
         role: "user",
@@ -158,7 +177,7 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
 
   for await (const message of runner) {
     if (message.stop_reason === "refusal") throw new Error("The model declined this request.");
-    if (cart) break;
+    if (cart && refillDone) break;
   }
   const result = cart as Cart | null;
   if (!result) throw new Error("The shopper couldn't build a cart for that. Try a different request.");
