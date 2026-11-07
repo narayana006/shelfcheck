@@ -93,7 +93,7 @@ Fill `.env.local` with `ANTHROPIC_API_KEY`, `PAYPAL_CLIENT_ID` and `PAYPAL_CLIEN
 
 ## Built for the PayPal AI Hackathon
 
-ShelfCheck began in October 2026 as a skin-scan and ingredient-check app (it was never submitted to another competition). During this hackathon we built the shopping agent, the code-enforced budget and fit gates, PayPal Orders checkout, PayPal Subscriptions refills, the redesigned shopper-first experience and the sample-skin mode. See the commit history.
+All of ShelfCheck was built during the hackathon's submission period (it opened Oct 1, 2026; the first code was written Oct 26). It started as a skin-scan and ingredient-check prototype and was never submitted to any other competition. The shopping agent, the code-enforced budget and fit gates, PayPal Orders checkout, PayPal Subscriptions refills, the shopper-first redesign and the sample-skin mode followed. See the commit history.
 
 ## Notes
 

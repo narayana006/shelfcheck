@@ -174,13 +174,11 @@ export function scoreFit(matches: IngredientMatch[], scores: ConcernScore[]): Fi
   }
 
   const fit = maxPossible ? Math.round(Math.max(-1, Math.min(1, total / (maxPossible * 0.5))) * 100) : 0;
-  // Anything that aggravates a concern the person is weak on (< 55) can't be a top pick,
-  // however much else it does well.
-  const weakAggravated = impacts.filter((i) => i.aggravatedBy.length && i.userScore < 55);
-  const strongly = weakAggravated.some((i) => i.aggravatedBy.length >= 2);
+  // Anything that aggravates a concern the person is weak on (< 55) is "caution", however much
+  // else it does well. The shopper's checkout refuses caution products, so this is the hard gate.
+  const weakAggravated = impacts.some((i) => i.aggravatedBy.length && i.userScore < 55);
   let verdict: Verdict = fit >= 45 ? "great" : fit >= 15 ? "good" : fit <= -15 ? "caution" : "neutral";
-  if (weakAggravated.length && (strongly || fit < 40)) verdict = "caution";
-  else if (weakAggravated.length && verdict === "great") verdict = "good";
+  if (weakAggravated) verdict = "caution";
 
   impacts.sort((a, b) => a.userScore - b.userScore);
   return { verdict, fit, impacts };

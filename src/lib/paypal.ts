@@ -1,6 +1,7 @@
 // PayPal Orders v2 via the official server SDK, against the sandbox environment.
 // https://developer.paypal.com/docs/api/orders/v2/
 
+import { createHash } from "node:crypto";
 import {
   CheckoutPaymentIntent,
   Client,
@@ -50,7 +51,7 @@ export function priceCart(lines: CartLine[]) {
 }
 
 /** Create a PayPal order for a cart; the buyer approves it in PayPal Checkout. */
-export async function createOrder(lines: CartLine[], description: string): Promise<string> {
+export async function createOrder(lines: CartLine[], description: string, runId: string): Promise<string> {
   const { items, total } = priceCart(lines);
   const body: OrderRequest = {
     intent: CheckoutPaymentIntent.Capture,
@@ -85,8 +86,11 @@ export async function createOrder(lines: CartLine[], description: string): Promi
       },
     ],
   };
-  // Idempotency key: a retried request can't create a second order.
-  const { result } = await orders().createOrder({ body, prefer: "return=minimal", paypalRequestId: crypto.randomUUID() });
+  // Idempotency key derived from the run and the exact cart: a retried create for the same
+  // run and cart returns the same order instead of creating a second one.
+  const cartKey = items.map((i) => `${i.product.id}x${i.quantity}`).join(",");
+  const requestId = createHash("sha256").update(`${runId}|${cartKey}`).digest("hex").slice(0, 36);
+  const { result } = await orders().createOrder({ body, prefer: "return=minimal", paypalRequestId: requestId });
   if (!result.id) throw new PayPalError("PayPal didn't return an order id.");
   return result.id;
 }

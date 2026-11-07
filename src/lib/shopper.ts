@@ -38,11 +38,13 @@ export interface Cart {
 
 /** Pull a dollar budget out of the shopper's request ("under $60", "max 45 dollars"). */
 export function parseBudget(request: string): number | null {
-  const m =
-    request.match(/\$\s*(\d+(?:\.\d{1,2})?)/) ??
-    request.match(/(?:under|below|max(?:imum)?|budget(?: of)?|less than|up to)\s*(\d+(?:\.\d{1,2})?)/i) ??
-    request.match(/(\d+(?:\.\d{1,2})?)\s*(?:dollars|usd|bucks)/i);
-  const n = m ? Number(m[1]) : NaN;
+  const amount = String.raw`\$?\s*(\d+(?:\.\d{1,2})?)\s*(?:dollars|usd|bucks)?`;
+  // A budget phrase wins over any other dollar amount ("I have a $30 cleanser, routine under $60" → 60).
+  const phrased = request.match(new RegExp(String.raw`(?:under|below|max(?:imum)?|budget(?:\s+of)?|less than|up to|no more than|spend)\s*` + amount, "i"));
+  const dollars = [...request.matchAll(/\$\s*(\d+(?:\.\d{1,2})?)/g)];
+  const words = request.match(/(\d+(?:\.\d{1,2})?)\s*(?:dollars|usd|bucks)/i);
+  const raw = phrased?.[1] ?? (dollars.length === 1 ? dollars[0][1] : words?.[1]);
+  const n = raw ? Number(raw) : NaN;
   return Number.isFinite(n) && n >= 5 && n <= 1000 ? n : null;
 }
 
@@ -78,6 +80,7 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
   let cart: Cart | null = null;
   let refillDone = false;
   const budget = parseBudget(request);
+  const runId = crypto.randomUUID();
   const rejected = new Map<string, { name: string; reason: string }>();
 
   const searchProducts = betaZodTool({
@@ -137,7 +140,10 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
         const p = getProduct(l.product_id);
         if (!p) return `Product ${l.product_id} is not in the store. Fix the cart and call again.`;
         const f = fitFor(p, scores);
-        if (f.verdict === "caution") return `${p.name} is a "caution" match for this shopper. Replace it and call again.`;
+        if (f.verdict === "caution") {
+          emit({ type: "step", text: `Checkout refused ${p.brand} ${p.name}: fails your skin check` });
+          return `${p.name} is a "caution" match for this shopper. Replace it and call again.`;
+        }
         items.push({
           productId: p.id,
           brand: p.brand,
@@ -151,14 +157,15 @@ export async function runShopper(request: string, scores: ConcernScore[], emit: 
           allergens: f.allergens,
         });
       }
-      emit({ type: "step", text: "Creating your PayPal order" });
       try {
         const cartLines = items.map((i) => ({ productId: i.productId, quantity: i.quantity }));
         const { total } = priceCart(cartLines);
         if (budget !== null && total > budget) {
+          emit({ type: "step", text: `Checkout refused a $${total.toFixed(2)} cart: over your $${budget.toFixed(2)} budget` });
           return `Cart total $${total.toFixed(2)} is over the shopper's $${budget.toFixed(2)} budget by $${(total - budget).toFixed(2)}. Swap or drop items and call again.`;
         }
-        const orderId = await createOrder(cartLines, "ShelfCheck skin-matched routine");
+        emit({ type: "step", text: "Creating your PayPal order" });
+        const orderId = await createOrder(cartLines, "ShelfCheck skin-matched routine", runId);
         cart = { items, total, summary, orderId, budget, rejected: [...rejected.values()] };
         return `PayPal order ${orderId} created for $${total.toFixed(2)}. The shopper will now approve payment.`;
       } catch (e) {

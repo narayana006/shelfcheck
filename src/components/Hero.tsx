@@ -87,7 +87,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
               ))}
             </ul>
             <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted">
-              <span className="text-focus">✕</span> Ruled out 3 products that aggravate your redness
+              <span className="text-focus">✕</span> Ruled out 6 products that aggravate your redness
             </p>
             <div className="mt-4 rounded-full bg-[#ffc439] py-2.5 text-center text-[13px] font-semibold text-[#003087]">
               Pay with PayPal

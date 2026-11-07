@@ -159,7 +159,13 @@ function RefillCard({ cart, clientId }: { cart: Cart; clientId: string | null })
           >
             <PayPalButtons
               style={{ layout: "vertical", shape: "pill", label: "subscribe" }}
-              createSubscription={(_data, actions) => actions.subscription.create({ plan_id: planId })}
+              createSubscription={(_data, actions) =>
+                // Today's order already paid for this routine: first refill bills one interval from now.
+                actions.subscription.create({
+                  plan_id: planId,
+                  start_time: new Date(Date.now() + intervalWeeks * 7 * 24 * 3600 * 1000).toISOString(),
+                })
+              }
               onApprove={async (data) => {
                 const res = await fetch(`/api/paypal/refill?subscription=${encodeURIComponent(data.subscriptionID ?? "")}`);
                 const body = await res.json();
@@ -271,8 +277,16 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
           </dl>
         </Card>
         {cart && <RefillCard cart={cart} clientId={clientId} />}
-        <Button variant="secondary" onClick={() => setPaid(null)}>
-          Back to my cart
+        <Button
+          variant="secondary"
+          onClick={() => {
+            // The order is captured; start a fresh shop rather than re-offering payment for it.
+            setPaid(null);
+            setCart(null);
+            setSteps([]);
+          }}
+        >
+          Shop for something else
         </Button>
       </div>
     );
@@ -322,16 +336,32 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
         </Card>
       )}
 
-      {(running || steps.length > 0) && !cart && (
+      {(running || steps.length > 0) && (
         <Card>
-          <ul className="grid gap-2 text-sm">
-            {steps.map((s, i) => (
-              <li key={i} className="flex gap-2">
-                <span className={i === steps.length - 1 && running ? "animate-pulse text-brand" : "text-good"}>●</span>
-                {s}
-              </li>
-            ))}
-          </ul>
+          <details open={!cart} className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
+              <span>How the shopper decided · {steps.length} steps</span>
+              <span className="text-muted transition group-open:rotate-90">›</span>
+            </summary>
+            <ul className="mt-3 grid gap-2 text-sm">
+              {steps.map((s, i) => (
+                <li key={i} className="flex gap-2">
+                  <span
+                    className={
+                      i === steps.length - 1 && running
+                        ? "animate-pulse text-brand"
+                        : s.startsWith("Ruled out") || s.startsWith("Checkout refused")
+                          ? "text-focus"
+                          : "text-good"
+                    }
+                  >
+                    ●
+                  </span>
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </details>
           {running && <div className="mt-3"><Spinner label="Shopping…" /></div>}
         </Card>
       )}

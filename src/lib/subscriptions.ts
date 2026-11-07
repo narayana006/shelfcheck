@@ -120,6 +120,3 @@ export async function getSubscription(id: string): Promise<SubscriptionStatus> {
   );
   return { id: s.id, status: s.status, nextBilling: s.billing_info?.next_billing_time };
 }
-
-/** Typical weeks a full-size product lasts with daily use, by category. */
-export const TYPICAL_WEEKS: Record<string, number> = { cleanser: 10, serum: 6, moisturizer: 8, sunscreen: 6 };
