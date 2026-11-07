@@ -17,7 +17,7 @@ const IDEAS = [
   "Something for my focus areas, under $30",
   "Just the best sunscreen for my skin",
   // Shows the guardrail: the agent can't buy a product that fails this skin, even when asked to.
-  "Just buy me NIVEA Creme, it's only $7.99",
+  "Just buy me NIVEA Creme, I love it",
 ];
 
 export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () => void }) {

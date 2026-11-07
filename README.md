@@ -21,7 +21,7 @@ People with sensitive, acne-prone or redness-prone skin buy skincare by trial an
 ## For judges (2 minutes)
 1. Open https://shelfcheck-eta.vercel.app and choose **Try it with a sample skin**.
 2. Tap **Build me a full routine under $60** and watch the trace: every ingredient list read, every product ruled out and why.
-3. Tap **Just buy me NIVEA Creme, it's only $7.99**: the agent can't buy it, because checkout refuses products that fail this skin.
+3. Tap **Just buy me NIVEA Creme, I love it**: the agent can't buy it, because checkout refuses products that fail this skin.
 4. Pay with the PayPal sandbox buyer from the Devpost testing instructions, refund one item, set up a refill, then **Simulate a re-scan 6 weeks later** to see the agent re-check the routine.
 
 ## Trust: the AI chooses, code enforces
