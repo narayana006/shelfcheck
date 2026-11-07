@@ -68,6 +68,7 @@ How to work:
 - Read the request (a budget, a concern, a full routine...). Search the store by category.
 - Always run check_fit on candidates before choosing. Never pick a product whose verdict is "caution". Prefer "great", then "good".
 - Respect the budget strictly if one is given. One of each category is enough unless asked otherwise.
+- If the shopper names a product that check_fit marks "caution", do not buy it, even when asked. Say why in your summary, then check out the best-fitting product from the same category instead, so they always get a safe cart to approve or ignore.
 - For a routine, order it cleanser → serum → moisturizer → sunscreen.
 - When the cart is right, call create_checkout once. It prices the cart from the store, creates a PayPal order, and the shopper approves payment themselves.
 - Then call propose_refill once: pick how many weeks until this routine needs refilling, using typical usage per category (cleanser ~10 weeks, serum ~6, moisturizer ~8, sunscreen ~6 with daily use). Refill when the first key product runs out.
@@ -122,7 +123,7 @@ export async function runShopper(
       "Score products against this shopper's measured skin: verdict (great/good/neutral/caution), fit score, which concerns each helps or aggravates, and EU-listed fragrance allergens.",
     inputSchema: z.object({ product_ids: z.array(z.string()).min(1).max(12) }),
     run: async ({ product_ids }) => {
-      emit({ type: "step", text: `Checking ${product_ids.length} ingredient lists against your skin` });
+      emit({ type: "step", text: `Checking ${product_ids.length} ingredient ${product_ids.length === 1 ? "list" : "lists"} against your skin` });
       const rows = product_ids.map((id) => {
         const p = getProduct(id);
         if (!p) return { id, error: "not in store" };
@@ -136,7 +137,12 @@ export async function runShopper(
       });
       const passing = rows.filter((r) => "verdict" in r && r.verdict !== "caution").length;
       // The model thinks for a while after the last check; say what it's doing so the trace never looks frozen.
-      emit({ type: "step", text: `Weighing ${passing} products that passed on fit and price` });
+      emit({
+        type: "step",
+        text: passing
+          ? `Weighing ${passing} ${passing === 1 ? "product" : "products"} that passed on fit and price`
+          : "None of these pass your skin check. Looking for safer alternatives",
+      });
       return JSON.stringify(rows);
     },
   });
