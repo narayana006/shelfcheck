@@ -102,9 +102,11 @@ export default function Home() {
       {latest?.sample && (
         <div className="bg-brand-soft px-4 py-2.5 text-center text-[14px] text-brand">
           You&apos;re using a sample skin profile.{" "}
-          <button onClick={() => go("skin", true)} className="min-h-6 font-semibold underline-offset-4 hover:underline">
-            Scan your own skin ›
-          </button>
+          {process.env.NEXT_PUBLIC_YOUCAM_DISABLED !== "1" && (
+            <button onClick={() => go("skin", true)} className="min-h-6 font-semibold underline-offset-4 hover:underline">
+              Scan your own skin ›
+            </button>
+          )}
         </div>
       )}
 

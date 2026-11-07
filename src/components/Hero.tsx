@@ -60,6 +60,29 @@ const TONE = {
   cream: "bg-surface text-foreground",
 };
 
+/** Live selfie scans can be paused (YouCam); the sample profiles then become the main path. */
+const SCAN_ENABLED = process.env.NEXT_PUBLIC_YOUCAM_DISABLED !== "1";
+
+function CallsToAction({ onScan, onSample }: { onScan: () => void; onSample: () => void }) {
+  if (!SCAN_ENABLED) {
+    return (
+      <Button onClick={onSample} className="min-w-56">
+        Try it with a sample skin
+      </Button>
+    );
+  }
+  return (
+    <>
+      <Button onClick={onScan} className="min-w-48">
+        Scan my skin
+      </Button>
+      <Button variant="link" onClick={onSample}>
+        Try it with a sample skin ›
+      </Button>
+    </>
+  );
+}
+
 export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () => void }) {
   return (
     <div>
@@ -67,7 +90,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
         <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
           <Logo className="text-[19px]" />
           <button
-            onClick={onScan}
+            onClick={SCAN_ENABLED ? onScan : onSample}
             className="min-h-9 rounded-full bg-brand-fill px-4 text-[13px] font-medium text-on-brand hover:brightness-110"
           >
             Get started
@@ -88,12 +111,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
             You approve every dollar.
           </p>
           <div className="rise mt-10 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-4">
-            <Button onClick={onScan} className="min-w-48">
-              Scan my skin
-            </Button>
-            <Button variant="link" onClick={onSample}>
-              Try it with a sample skin ›
-            </Button>
+            <CallsToAction onScan={onScan} onSample={onSample} />
           </div>
         </section>
 
@@ -183,12 +201,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
             ))}
           </ul>
           <div className="mt-10 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-4">
-            <Button onClick={onScan} className="min-w-48">
-              Get started
-            </Button>
-            <Button variant="link" onClick={onSample}>
-              Try it with a sample skin ›
-            </Button>
+            <CallsToAction onScan={onScan} onSample={onSample} />
           </div>
         </section>
       </main>
