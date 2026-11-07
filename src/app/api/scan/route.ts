@@ -7,6 +7,13 @@ export const maxDuration = 120;
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  // Kill switch for the live YouCam scan (the sample profiles keep the whole app usable).
+  if (process.env.YOUCAM_DISABLED === "1") {
+    return Response.json(
+      { error: "Live skin scans are paused in this demo. Use “Try it with a sample skin” instead." },
+      { status: 503 },
+    );
+  }
   if (process.env.YOUCAM_MOCK === "1") {
     return Response.json({ scores: sampleScores(), tone: { skin: "#c99a7e" }, fileId: null, sample: true });
   }
