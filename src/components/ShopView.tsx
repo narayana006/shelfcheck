@@ -1,201 +1,31 @@
 "use client";
 
-import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { store, type SavedOrder } from "@/lib/client";
 import type { CaptureResult } from "@/lib/paypal";
 import type { Cart, ShopEvent } from "@/lib/shopper";
 import { CONCERNS, priorities, type SkinScan } from "@/lib/skin";
-import { Button, Card, ErrorNote, Eyebrow, Spinner, VerdictPill } from "./ui";
+import { postStream } from "@/lib/stream";
+import { CartPanel } from "./shop/CartPanel";
+import { OrderCard } from "./shop/OrderCard";
+import { Trace } from "./shop/Trace";
+import { Button, Card, CardTitle, ErrorNote, Eyebrow, PageTitle } from "./ui";
 
 const IDEAS = ["Build me a full routine under $60", "Something for my focus areas, under $30", "Just the best sunscreen for my skin"];
-
-function CartView({ cart, clientId, onPaid }: { cart: Cart; clientId: string | null; onPaid: (r: CaptureResult) => void }) {
-  const [payError, setPayError] = useState<string | null>(null);
-  return (
-    <div className="grid gap-4">
-      <Card>
-        <Eyebrow>Your skin-matched cart</Eyebrow>
-        <p className="mt-2 text-sm leading-relaxed">{cart.summary}</p>
-        <ul className="mt-4 divide-y divide-line/50">
-          {cart.items.map((i) => (
-            <li key={i.productId} className="flex gap-3 py-3">
-              {i.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={i.image} alt="" className="h-14 w-14 shrink-0 rounded-2xl bg-white object-contain" />
-              ) : (
-                <div className="h-14 w-14 shrink-0 rounded-xl bg-line" />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-xs uppercase tracking-wider text-muted">{i.category}</div>
-                    <div className="truncate text-sm font-semibold">
-                      {i.brand} {i.name}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold tabular-nums">${(i.price * i.quantity).toFixed(2)}</div>
-                </div>
-                <p className="mt-1 text-xs text-muted">{i.why}</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <VerdictPill verdict={i.verdict} />
-                  {i.allergens.length > 0 && <span className="text-xs text-fair">{i.allergens.length} EU fragrance allergen(s)</span>}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-2 flex items-baseline justify-between border-t border-line pt-3">
-          <span className="text-sm text-muted">
-            Total
-            {cart.budget !== null && <> · ${cart.total.toFixed(2)} of your ${cart.budget.toFixed(2)} budget</>}
-          </span>
-          <span className="text-3xl font-semibold tabular-nums tracking-tight">${cart.total.toFixed(2)}</span>
-        </div>
-      </Card>
-
-      {cart.rejected.length > 0 && (
-        <Card>
-          <Eyebrow>Considered and ruled out · {cart.rejected.length}</Eyebrow>
-          <ul className="mt-3 grid gap-2 text-sm">
-            {cart.rejected.map((r) => (
-              <li key={r.name} className="flex items-start gap-2">
-                <span className="text-focus">✕</span>
-                <span>
-                  {r.name}
-                  <span className="text-muted"> — {r.reason}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted">
-            These checks are code, not the AI&apos;s opinion: the checkout refuses any product that aggravates a weak spot or
-            breaks your budget.
-          </p>
-        </Card>
-      )}
-
-      <Card>
-        <Eyebrow>Approve & pay</Eyebrow>
-        <p className="mt-2 text-xs text-muted">
-          The agent created PayPal order <span className="font-mono">{cart.orderId}</span>. Nothing is charged until you approve it.
-        </p>
-        <div className="mt-4">
-          {clientId ? (
-            <PayPalScriptProvider options={{ clientId, currency: "USD", intent: "capture" }}>
-              <PayPalButtons
-                style={{ layout: "vertical", shape: "pill", label: "pay" }}
-                createOrder={async () => cart.orderId}
-                onApprove={async (data) => {
-                  const res = await fetch("/api/paypal/capture", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ orderId: data.orderID }),
-                  });
-                  const body = await res.json();
-                  if (!res.ok) setPayError(body.error);
-                  else onPaid(body);
-                }}
-                onError={() => setPayError("PayPal hit a problem. Please try again.")}
-              />
-            </PayPalScriptProvider>
-          ) : (
-            <ErrorNote>PayPal isn&apos;t configured on this server yet.</ErrorNote>
-          )}
-        </div>
-        {payError && <div className="mt-3"><ErrorNote>{payError}</ErrorNote></div>}
-        <p className="mt-3 text-xs text-muted">PayPal sandbox: demo store, illustrative prices, test money only.</p>
-      </Card>
-    </div>
-  );
-}
-
-/** After payment: opt into the agent's proposed refill cadence with PayPal Subscriptions. */
-function RefillCard({ cart, clientId }: { cart: Cart; clientId: string | null }) {
-  const [planId, setPlanId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [active, setActive] = useState<{ id: string; status: string; nextBilling?: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  if (!cart.refill || !clientId) return null;
-  const { intervalWeeks, reason } = cart.refill;
-
-  async function preparePlan() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/paypal/refill", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: cart.orderId, intervalWeeks }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error);
-      setPlanId(body.planId);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't set up the refill.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Card>
-      <Eyebrow>Never run out</Eyebrow>
-      <p className="mt-2 text-2xl font-semibold leading-tight tracking-tight">Refill this routine every {intervalWeeks} weeks</p>
-      <p className="mt-2 text-sm text-muted">{reason}</p>
-      <p className="mt-1 text-sm">
-        ${cart.total.toFixed(2)} every {intervalWeeks} weeks · cancel anytime in PayPal
-      </p>
-      <div className="mt-4">
-        {active ? (
-          <p className="rounded-2xl bg-good-soft p-3 text-sm text-good">
-            Auto-refill is <strong>{active.status.toLowerCase()}</strong>
-            {active.nextBilling && <> · next refill {new Date(active.nextBilling).toLocaleDateString()}</>}
-            <span className="mt-1 block font-mono text-xs">{active.id}</span>
-          </p>
-        ) : planId ? (
-          <PayPalScriptProvider
-            key="subscription"
-            options={{ clientId, vault: true, intent: "subscription", components: "buttons" }}
-          >
-            <PayPalButtons
-              style={{ layout: "vertical", shape: "pill", label: "subscribe" }}
-              createSubscription={(_data, actions) =>
-                // Today's order already paid for this routine: first refill bills one interval from now.
-                actions.subscription.create({
-                  plan_id: planId,
-                  start_time: new Date(Date.now() + intervalWeeks * 7 * 24 * 3600 * 1000).toISOString(),
-                })
-              }
-              onApprove={async (data) => {
-                const res = await fetch(`/api/paypal/refill?subscription=${encodeURIComponent(data.subscriptionID ?? "")}`);
-                const body = await res.json();
-                if (!res.ok) setError(body.error);
-                else setActive(body);
-              }}
-              onError={() => setError("PayPal hit a problem setting up the subscription.")}
-            />
-          </PayPalScriptProvider>
-        ) : (
-          <Button variant="secondary" onClick={preparePlan} disabled={busy} className="w-full">
-            {busy ? "Setting up…" : "Set up auto-refill with PayPal"}
-          </Button>
-        )}
-      </div>
-      {error && <div className="mt-3"><ErrorNote>{error}</ErrorNote></div>}
-    </Card>
-  );
-}
 
 export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () => void }) {
   const [request, setRequest] = useState("");
   const [steps, setSteps] = useState<string[]>([]);
   const [cart, setCart] = useState<Cart | null>(null);
-  const [paid, setPaid] = useState<CaptureResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [orders, setOrders] = useState<SavedOrder[]>([]);
+  const [justPaid, setJustPaid] = useState<string | null>(null);
 
   useEffect(() => {
+    setOrders(store.orders());
     fetch("/api/paypal/config")
       .then((r) => r.json())
       .then((b) => setClientId(b.clientId))
@@ -204,50 +34,31 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
 
   if (!scan) {
     return (
-      <Card className="mt-6">
+      <Card className="mt-10">
         <Eyebrow>Shop for your skin</Eyebrow>
-        <p className="mt-2 text-sm text-muted">The shopper picks products for your measured skin, so start with a quick scan.</p>
-        <Button onClick={goScan} className="mt-4 w-full">
-          Scan my skin first
+        <CardTitle>Start with a quick scan</CardTitle>
+        <p className="mt-2 text-[15px] text-muted">The shopper picks products for your measured skin.</p>
+        <Button onClick={goScan} className="mt-5 w-full">
+          Scan my skin
         </Button>
       </Card>
     );
   }
 
   async function run(text: string) {
+    if (text.trim().length < 3 || running) return;
     setRequest(text);
     setRunning(true);
     setSteps([]);
     setCart(null);
-    setPaid(null);
+    setJustPaid(null);
     setError(null);
     try {
-      const res = await fetch("/api/shop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request: text, scores: scan!.scores }),
+      await postStream<ShopEvent>("/api/shop", { request: text, scores: scan!.scores }, (e) => {
+        if (e.type === "step") setSteps((s) => [...s, e.text]);
+        else if (e.type === "cart") setCart(e.cart);
+        else setError(e.message);
       });
-      if (!res.ok || !res.body) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "The shopper is unavailable.");
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const e = JSON.parse(line) as ShopEvent;
-          if (e.type === "step") setSteps((s) => [...s, e.text]);
-          else if (e.type === "cart") setCart(e.cart);
-          else if (e.type === "error") setError(e.message);
-        }
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -255,119 +66,133 @@ export function ShopView({ scan, goScan }: { scan: SkinScan | null; goScan: () =
     }
   }
 
-  if (paid) {
-    return (
-      <div className="grid gap-5 pt-4">
-        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Paid. Your routine is on its way.</h1>
-        <Card>
-          <Eyebrow>PayPal receipt</Eyebrow>
-          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-            <dt className="text-muted">Status</dt>
-            <dd className="font-semibold text-good">{paid.status}</dd>
-            <dt className="text-muted">Amount</dt>
-            <dd className="tabular-nums">{paid.amount}</dd>
-            <dt className="text-muted">Order</dt>
-            <dd className="font-mono text-xs">{paid.orderId}</dd>
-            {paid.captureId && (
-              <>
-                <dt className="text-muted">Capture</dt>
-                <dd className="font-mono text-xs">{paid.captureId}</dd>
-              </>
-            )}
-          </dl>
-        </Card>
-        {cart && <RefillCard cart={cart} clientId={clientId} />}
-        <Button
-          variant="secondary"
-          onClick={() => {
-            // The order is captured; start a fresh shop rather than re-offering payment for it.
-            setPaid(null);
-            setCart(null);
-            setSteps([]);
-          }}
-        >
-          Shop for something else
-        </Button>
-      </div>
-    );
+  function onPaid(r: CaptureResult) {
+    if (!cart) return;
+    const order: SavedOrder = {
+      orderId: r.orderId,
+      captureId: r.captureId,
+      paidAt: new Date().toISOString(),
+      total: cart.total,
+      items: cart.items.map(({ productId, brand, name, category, price, quantity, image }) => ({
+        productId,
+        brand,
+        name,
+        category,
+        price,
+        quantity,
+        image,
+      })),
+      refunded: {},
+      proposal: cart.refill,
+    };
+    const next = [order, ...store.orders().filter((o) => o.orderId !== order.orderId)];
+    store.saveOrders(next);
+    setOrders(next);
+    setJustPaid(order.orderId);
+    setCart(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  return (
-    <div className="grid gap-5">
-      <div className="pt-4">
-        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">
-          What should we get
-          <br />
-          <span className="text-gradient">for your skin?</span>
-        </h1>
-        <p className="mt-4 max-w-xl text-lg text-muted">
-          Tell the shopper what you need. It reads every ingredient list against your scan, keeps to your budget and sets up
-          PayPal checkout. You approve the payment.
-        </p>
-        <div className="mt-5 flex flex-wrap items-center gap-2 text-[13px]">
-          <span className="text-muted">Shopping for</span>
-          {priorities(scan, 3).map((c) => (
-            <span key={c.concern} className="rounded-full bg-surface px-3 py-1 font-medium">
-              {CONCERNS[c.concern]} <span className="text-muted">{c.score}</span>
-            </span>
-          ))}
-        </div>
-      </div>
+  const paidOrder = justPaid ? orders.find((o) => o.orderId === justPaid) : null;
+  const pastOrders = orders.filter((o) => o.orderId !== justPaid);
 
-      {!running && (
-        <Card>
-          <textarea
-            value={request}
-            onChange={(e) => setRequest(e.target.value)}
-            rows={2}
-            placeholder="e.g. A gentle routine for redness, under $50"
-            className="w-full resize-none bg-transparent text-sm outline-none"
-          />
+  return (
+    <div className="grid gap-6">
+      {paidOrder ? (
+        <PageTitle lede="Your PayPal payment is complete. Set up refills, or refund anything that disagrees with your skin.">
+          Paid. <span className="text-gradient">Your routine is on its way.</span>
+        </PageTitle>
+      ) : (
+        <PageTitle
+          lede={
+            <>
+              Tell the shopper what you need. It reads every ingredient list against your scan, keeps to your budget and sets up
+              PayPal checkout. You approve the payment.
+            </>
+          }
+        >
+          What should we get <span className="text-gradient">for your skin?</span>
+        </PageTitle>
+      )}
+
+      {paidOrder && (
+        <OrderCard order={paidOrder} proposal={paidOrder.proposal} scan={scan} clientId={clientId} onChange={setOrders} />
+      )}
+
+      {!paidOrder && (
+        <div className="rise">
+          <div className="flex flex-wrap items-center gap-2 text-[14px]">
+            <span className="text-muted">Shopping for</span>
+            {priorities(scan, 3).map((c) => (
+              <span key={c.concern} className="rounded-full bg-surface px-3 py-1.5 font-medium">
+                {CONCERNS[c.concern]} <span className="text-muted">{c.score}</span>
+              </span>
+            ))}
+          </div>
+
+          <form
+            className="mt-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              run(request);
+            }}
+          >
+            <label htmlFor="ask" className="sr-only">
+              What do you need?
+            </label>
+            <div className="flex items-center gap-2 rounded-full bg-raised py-2 pl-6 pr-2 shadow-[0_10px_40px_-15px_rgba(70,50,20,0.35)] ring-1 ring-line/60 focus-within:ring-2 focus-within:ring-brand">
+              <input
+                id="ask"
+                value={request}
+                onChange={(e) => setRequest(e.target.value)}
+                disabled={running}
+                placeholder="A gentle routine for redness, under $50"
+                className="min-w-0 flex-1 bg-transparent text-[17px] outline-none disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={running || request.trim().length < 3}
+                aria-label="Shop for me"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-fill text-on-brand transition enabled:hover:brightness-110 disabled:opacity-30"
+              >
+                <ArrowUp className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+              </button>
+            </div>
+          </form>
+
           <div className="mt-3 flex flex-wrap gap-2">
             {IDEAS.map((i) => (
-              <button key={i} onClick={() => run(i)} className="rounded-full bg-raised px-4 py-2 text-[13px] shadow-sm ring-1 ring-line/40 transition hover:ring-brand">
+              <button
+                key={i}
+                onClick={() => run(i)}
+                disabled={running}
+                className="min-h-11 rounded-full bg-surface px-4 text-[14px] transition enabled:hover:bg-foreground/10 disabled:opacity-40"
+              >
                 {i}
               </button>
             ))}
           </div>
-          <Button onClick={() => run(request)} disabled={request.trim().length < 3} className="mt-4 w-full">
-            Shop for me
-          </Button>
-        </Card>
+        </div>
       )}
 
-      {(running || steps.length > 0) && (
-        <Card>
-          <details open={!cart} className="group">
-            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
-              <span>How the shopper decided · {steps.length} steps</span>
-              <span className="text-muted transition group-open:rotate-90">›</span>
-            </summary>
-            <ul className="mt-3 grid gap-2 text-sm">
-              {steps.map((s, i) => (
-                <li key={i} className="flex gap-2">
-                  <span
-                    className={
-                      i === steps.length - 1 && running
-                        ? "animate-pulse text-brand"
-                        : s.startsWith("Ruled out") || s.startsWith("Checkout refused")
-                          ? "text-focus"
-                          : "text-good"
-                    }
-                  >
-                    ●
-                  </span>
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </details>
-          {running && <div className="mt-3"><Spinner label="Shopping…" /></div>}
-        </Card>
-      )}
-
+      {!paidOrder && (running || steps.length > 0) && <Trace steps={steps} running={running} title="The shopper at work" />}
       {error && <ErrorNote>{error}</ErrorNote>}
-      {cart && <CartView cart={cart} clientId={clientId} onPaid={setPaid} />}
+      {!paidOrder && cart && <CartPanel cart={cart} clientId={clientId} onPaid={onPaid} />}
+
+      {paidOrder && (
+        <Button variant="secondary" onClick={() => { setJustPaid(null); setSteps([]); setRequest(""); }}>
+          Shop for something else
+        </Button>
+      )}
+
+      {pastOrders.length > 0 && (
+        <div className="mt-6 grid gap-4">
+          <h2 className="text-[clamp(28px,4vw,36px)] font-semibold">Your routine & orders</h2>
+          {pastOrders.map((o) => (
+            <OrderCard key={o.orderId} order={o} proposal={o.proposal} scan={scan} clientId={clientId} onChange={setOrders} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

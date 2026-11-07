@@ -17,6 +17,8 @@ export interface SavedOrder {
   total: number;
   items: { productId: string; brand: string; name: string; category: string; price: number; quantity: number; image?: string }[];
   refunded: Record<string, string>;
+  /** The agent's proposed refill cadence, offered until the shopper subscribes. */
+  proposal?: { intervalWeeks: number; reason: string };
   subscription?: { id: string; intervalWeeks: number; status: string; nextBilling?: string };
 }
 

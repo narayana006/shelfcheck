@@ -1,4 +1,5 @@
 import { Check, ScanFace, ShieldCheck, Wallet, X } from "lucide-react";
+import { Logo } from "./Logo";
 import { Button } from "./ui";
 
 /** A real cart the agent produced for the sample skin profile. */
@@ -47,7 +48,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
     <div>
       <nav aria-label="ShelfCheck" className="sticky top-0 z-30 border-b border-line/40 bg-background/72 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
-          <span className="text-[19px] font-semibold tracking-tight">ShelfCheck</span>
+          <Logo className="text-[19px]" />
           <button
             onClick={onScan}
             className="min-h-9 rounded-full bg-brand-fill px-4 text-[13px] font-medium text-on-brand hover:brightness-110"

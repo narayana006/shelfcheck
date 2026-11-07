@@ -29,7 +29,7 @@ function ResultView({ r, scan }: { r: CheckResult; scan: SkinScan }) {
           </div>
           <VerdictPill verdict={fit.verdict} />
         </div>
-        <p className="mt-4 text-3xl font-semibold leading-tight tracking-tight">{explanation.headline}</p>
+        <h2 className="mt-4 text-3xl font-semibold leading-tight text-balance">{explanation.headline}</h2>
         <p className="mt-3 text-sm leading-relaxed">{explanation.summary}</p>
         <p className="mt-3 rounded-2xl bg-brand-soft p-3 text-sm">
           <span className="font-semibold text-brand">How to use · </span>
@@ -100,7 +100,7 @@ function ResultView({ r, scan }: { r: CheckResult; scan: SkinScan }) {
           </ul>
         )}
         <details className="mt-4 text-sm">
-          <summary className="cursor-pointer text-muted">Full ingredient list ({product.ingredients.length})</summary>
+          <summary className="cursor-pointer py-2 text-muted">Full ingredient list ({product.ingredients.length})</summary>
           <p className="mt-2 text-xs leading-relaxed text-muted">{product.ingredients.join(", ")}</p>
         </details>
       </Card>
@@ -203,7 +203,7 @@ export function CheckView({
         }}
       />
       <div className="pt-4">
-        <h1 className="text-4xl font-semibold leading-tight tracking-[-0.025em] sm:text-5xl">Will it work for you?</h1>
+        <h1 className="pt-6 text-[clamp(40px,7vw,64px)] font-semibold leading-[1.02] text-balance sm:pt-10">Will it work for you?</h1>
         <p className="mt-2 text-sm text-muted">Scan the barcode of any skincare product, or snap its ingredient list.</p>
       </div>
 
@@ -236,7 +236,7 @@ export function CheckView({
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             placeholder="e.g. 3337875597180"
-            className="mt-1 block w-full bg-transparent text-lg tracking-wider outline-none"
+            className="mt-1 block w-full rounded-lg bg-transparent text-lg tracking-wider"
           />
           <Button
             onClick={() => run({ barcode: code }, "Looking up the product and matching it to your skin…")}
@@ -251,11 +251,12 @@ export function CheckView({
       {mode === "paste" && !busy && (
         <Card>
           <textarea
+            aria-label="Ingredient list"
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={5}
             placeholder="Aqua, Niacinamide, Glycerin, …"
-            className="w-full resize-none bg-transparent text-sm outline-none"
+            className="w-full resize-none rounded-lg bg-transparent text-[17px]"
           />
           <Button
             onClick={() => run({ text }, "Matching these ingredients to your skin…")}

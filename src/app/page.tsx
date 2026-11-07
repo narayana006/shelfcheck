@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckView } from "@/components/CheckView";
 import { Hero } from "@/components/Hero";
+import { Logo } from "@/components/Logo";
 import { ProgressView } from "@/components/ProgressView";
 import { ShopView } from "@/components/ShopView";
 import { SkinView } from "@/components/SkinView";
@@ -76,7 +77,7 @@ export default function Home() {
       </a>
       <nav aria-label="ShelfCheck" className="sticky top-0 z-30 border-b border-line/40 bg-background/72 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-8">
-          <span className="shrink-0 text-[19px] font-semibold tracking-tight">ShelfCheck</span>
+          <Logo className="shrink-0 text-[19px]" />
           <div className="no-scrollbar -mr-4 flex flex-1 gap-1 overflow-x-auto pr-4 [mask-image:linear-gradient(to_right,black_85%,transparent)] sm:mr-0 sm:justify-end sm:pr-0 sm:[mask-image:none]">
             {TABS.map((t) => {
               const active = tab === t.id && !scanning;

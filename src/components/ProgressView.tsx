@@ -56,7 +56,7 @@ export function ProgressView({ scans }: { scans: SkinScan[] }) {
             const delta = (scoreOf(last, c) ?? 0) - (scoreOf(first, c) ?? 0);
             return (
               <li key={c} className="flex items-center justify-between gap-3 py-3 text-sm">
-                <span className="w-24">{CONCERNS[c]}</span>
+                <span className="w-28 shrink-0">{CONCERNS[c]}</span>
                 <Sparkline values={series} />
                 <span
                   className={`w-12 text-right font-semibold tabular-nums ${delta > 0 ? "text-good" : delta < 0 ? "text-focus" : "text-muted"}`}
