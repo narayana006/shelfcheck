@@ -84,7 +84,7 @@ function RefillSetup({
       </div>
       <div className="mt-5">
         {planId ? (
-          <PayPalScriptProvider options={{ clientId, vault: true, intent: "subscription", components: "buttons" }}>
+          <PayPalScriptProvider options={{ clientId, vault: true, intent: "subscription", components: "buttons", dataNamespace: "paypal_refill" }}>
             <PayPalButtons
               style={{ layout: "vertical", shape: "pill", label: "subscribe", height: 48 }}
               createSubscription={(_data, actions) =>
@@ -93,6 +93,8 @@ function RefillSetup({
                   plan_id: planId,
                   custom_id: order.orderId,
                   start_time: new Date(Date.now() + intervalWeeks * 7 * 24 * 3600 * 1000).toISOString(),
+                  // The SDK handles the return; the URLs are required by the type only.
+                  application_context: { brand_name: "ShelfCheck", user_action: "SUBSCRIBE_NOW", return_url: window.location.href, cancel_url: window.location.href },
                 })
               }
               onApprove={async (data) => {
@@ -172,6 +174,8 @@ function Recheck({
   async function revise() {
     if (!result) return;
     setError(null);
+    // Open the PayPal window inside the click, before any await, so Safari and other popup blockers allow it.
+    const win = window.open("", "shelfcheck_paypal", "popup,width=520,height=760");
     try {
       const body = await postJson<{ approveUrl: string; planId: string }>("/api/routine/revise", {
         subscriptionId: sub.id,
@@ -180,6 +184,7 @@ function Recheck({
         excludeIds,
         lines: result.lines,
         scores: usedScores,
+        popup: Boolean(win && !win.closed),
       });
       onChange(
         updateOrder(order.orderId, (o) => ({
@@ -187,8 +192,10 @@ function Recheck({
           pendingRevision: { planId: body.planId, lines: result.lines, swaps: result.swaps.map((s) => ({ fromId: s.fromId, toItem: s.toItem })) },
         })),
       );
-      window.open(body.approveUrl, "_blank", "noopener");
+      if (win && !win.closed) win.location.href = body.approveUrl;
+      else window.location.href = body.approveUrl;
     } catch (e) {
+      win?.close();
       setError(e instanceof Error ? e.message : "Couldn't update the refill.");
     }
   }
@@ -316,6 +323,26 @@ export function OrderCard({
       setVerifying(false);
     }
   }
+
+  // The PayPal window reports back when the shopper approves the change, so this tab confirms on its own.
+  const [approvedSignal, setApprovedSignal] = useState(0);
+  useEffect(() => {
+    const id = order.subscription?.id;
+    if (!id) return;
+    const onSignal = (data: unknown) => {
+      const d = data as { type?: string; id?: string } | null;
+      if (d?.type === "shelfcheck:revised" && d.id === id) setApprovedSignal((n) => n + 1);
+    };
+    const onMessage = (e: MessageEvent) => { if (e.origin === window.location.origin) onSignal(e.data); };
+    window.addEventListener("message", onMessage);
+    let channel: BroadcastChannel | null = null;
+    try { channel = new BroadcastChannel("shelfcheck"); channel.onmessage = (e) => onSignal(e.data); } catch {}
+    return () => { window.removeEventListener("message", onMessage); channel?.close(); };
+  }, [order.subscription?.id]);
+  useEffect(() => {
+    if (approvedSignal && order.pendingRevision) verifyRevision();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approvedSignal]);
 
   // Coming back from PayPal's approval page (?revised=<subscription id>) confirms automatically.
   useEffect(() => {

@@ -28,6 +28,18 @@ export default function Home() {
   const [scanning, setScanning] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
+  // Back from PayPal in the approval popup: tell the main tab, then close this window.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const revised = params.get("revised");
+    // PayPal's cross-site redirect can drop window.opener, so the return URL itself says it's the popup.
+    if (!revised || params.get("popup") !== "1") return;
+    const msg = { type: "shelfcheck:revised", id: revised };
+    try { window.opener?.postMessage(msg, window.location.origin); } catch {}
+    try { const c = new BroadcastChannel("shelfcheck"); c.postMessage(msg); c.close(); } catch {}
+    setTimeout(() => window.close(), 300);
+  }, []);
+
   useEffect(() => {
     setScans(store.scans());
     setChecks(store.checks());

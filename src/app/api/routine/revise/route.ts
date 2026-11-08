@@ -20,6 +20,8 @@ const BodySchema = z.object({
     .min(1)
     .max(8),
   scores: ScoresSchema,
+  /** Approval opens in a popup: PayPal's return page then reports back and closes itself. */
+  popup: z.boolean().default(false),
 });
 
 /**
@@ -29,7 +31,7 @@ const BodySchema = z.object({
 export async function POST(request: Request) {
   const parsed = BodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid change." }, { status: 400 });
-  const { subscriptionId, token, intervalWeeks, excludeIds, lines, scores } = parsed.data;
+  const { subscriptionId, token, intervalWeeks, excludeIds, lines, scores, popup } = parsed.data;
   if (!verify("subscription", subscriptionId, token)) {
     return Response.json({ error: "Only the subscriber can change this refill." }, { status: 403 });
   }
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
     }
     const plan = await planForLines(lines, intervalWeeks);
     const origin = new URL(request.url).origin;
-    const { approveUrl } = await reviseSubscription(subscriptionId, plan.planId, `${origin}/?revised=${subscriptionId}`);
+    const { approveUrl } = await reviseSubscription(subscriptionId, plan.planId, `${origin}/?revised=${subscriptionId}${popup ? "&popup=1" : ""}`);
     return Response.json({ approveUrl, planId: plan.planId, price: plan.price });
   } catch (e) {
     console.error(e);
