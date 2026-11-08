@@ -1,7 +1,7 @@
 "use client";
 
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { ArrowRight, CalendarClock, ChevronDown, RefreshCw, Undo2 } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarClock, ChevronDown, RefreshCw, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateOrder, type SavedOrder } from "@/lib/client";
 import type { RecheckEvent, RecheckResult } from "@/lib/recheck";
@@ -151,7 +151,13 @@ function Recheck({
     try {
       await postStream<RecheckEvent>(
         "/api/routine/recheck",
-        { lines: order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })), scores, excludeIds },
+        {
+          lines: order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          scores,
+          excludeIds,
+          subscriptionId: sub.id,
+          subscriptionToken: sub.token,
+        },
         (e) => {
           if (e.type === "step") setSteps((s) => [...s, e.text]);
           else if (e.type === "result") setResult(e.result);
@@ -359,6 +365,12 @@ export function OrderCard({
       <div>
         <Eyebrow>Order · {shortDate(order.paidAt)}</Eyebrow>
         <CardTitle>Paid ${order.total.toFixed(2)} with PayPal</CardTitle>
+        {order.captureId && (
+          <p className="mt-2 inline-flex items-center gap-1.5 text-[14px] text-good">
+            <BadgeCheck className="h-4 w-4" strokeWidth={2} aria-hidden />
+            Server verified the PayPal capture: COMPLETED
+          </p>
+        )}
       </div>
 
       <ul className="grid gap-3">

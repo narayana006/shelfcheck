@@ -130,7 +130,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
               <div className="rounded-[38px] bg-[#fffdf8] p-5 text-left text-[#1d1d1f]">
                 <div className="flex items-center justify-between">
                   <span className="text-[15px] font-semibold">Your cart</span>
-                  <span className="text-[13px] text-[#6e6e73]">$57.37 of $60</span>
+                  <span className="text-[13px] text-[#6e6e73]">$57.87 of $60</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/[0.07]">
                   <div className="h-full w-[95%] rounded-full bg-[#0071e3]" />

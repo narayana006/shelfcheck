@@ -3,6 +3,7 @@ import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import * as z from "zod/v4";
 import { CATALOG, getProduct } from "./catalog";
 import { priceCart } from "./paypal";
+import { refillStatus } from "./paypal-toolkit";
 import { fitFor } from "./shopper";
 import { CONCERNS, priorities, type ConcernScore } from "./skin";
 
@@ -37,7 +38,8 @@ export type RecheckEvent = { type: "step"; text: string } | { type: "result"; re
 const SYSTEM = `You are ShelfCheck's routine keeper. A shopper has a skincare routine on automatic refill. They just rescanned their skin, and before the next refill ships you re-check every product against the new scan.
 
 How to work:
-- Call check_fit on every product in the current routine first.
+- If read_refill_in_paypal is available, call it first: it reads the live refill from PayPal (status, next bill date, price per refill). If the refill isn't ACTIVE, say so in your summary and propose the current routine unchanged.
+- Call check_fit on every product in the current routine.
 - Keep products that still fit. Only swap a product if it is now "caution", was excluded because the shopper reacted to it, or is clearly worse than an alternative in the same category for the new scan.
 - Excluded products must be replaced with another product from the same category.
 - For a swap, search that category and check_fit candidates. Never choose a "caution" product.
@@ -51,6 +53,7 @@ export async function runRecheck(
   emit: (e: RecheckEvent) => void,
   excludeIds: string[] = [],
   signal?: AbortSignal,
+  subscriptionId?: string,
 ): Promise<RecheckResult> {
   const excluded = new Set(excludeIds);
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("The server is missing its ANTHROPIC_API_KEY.");
@@ -78,6 +81,27 @@ export async function runRecheck(
       );
       emit({ type: "step", text: "Weighing the options on fit and price" });
       return out;
+    },
+  });
+
+  // PayPal Agent Toolkit (read-only): the refill as PayPal sees it.
+  const readRefill = betaZodTool({
+    name: "read_refill_in_paypal",
+    description:
+      "Read this shopper's refill subscription live from PayPal with the PayPal Agent Toolkit: status, next billing date, last payment, price per refill and interval.",
+    inputSchema: z.object({}),
+    run: async () => {
+      emit({ type: "step", text: "Reading your refill in PayPal" });
+      try {
+        const s = await refillStatus(subscriptionId!);
+        const when = s.nextBilling ? new Date(s.nextBilling).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "not scheduled";
+        const price = s.pricePerRefill !== null ? `$${s.pricePerRefill.toFixed(2)}` : "unknown price";
+        emit({ type: "step", text: `PayPal says: refill ${s.status.toLowerCase()}, next bill ${when}, ${price}${s.everyWeeks ? ` every ${s.everyWeeks} weeks` : ""}` });
+        return JSON.stringify(s);
+      } catch (e) {
+        emit({ type: "step", text: "Couldn't reach PayPal for the refill details. Checking the routine anyway" });
+        return `PayPal lookup failed: ${e instanceof Error ? e.message : String(e)}. Continue with the routine check.`;
+      }
     },
   });
 
@@ -168,7 +192,7 @@ export async function runRecheck(
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     system: SYSTEM,
-    tools: [checkFit, searchProducts, proposeRoutine],
+    tools: subscriptionId ? [readRefill, checkFit, searchProducts, proposeRoutine] : [checkFit, searchProducts, proposeRoutine],
     messages: [
       {
         role: "user",

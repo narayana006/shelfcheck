@@ -65,6 +65,7 @@ Every product the agent rules out is shown in the cart with its reason, so you c
 | Refill product and billing plan, created from the completed order | Catalog Products API + Billing Plans API |
 | Subscription approval (first refill starts one interval later) and verification | JS SDK subscription buttons + `GET /v1/billing/subscriptions/{id}` |
 | Reaction-guarantee refund of a single item | Payments v2 `POST /v2/payments/captures/{id}/refund` (partial, idempotent) |
+| The re-check agent reads the live refill (status, next bill date, price per refill) as a tool call | **PayPal Agent Toolkit** (`@paypal/agent-toolkit`): `show_subscription_details`, `show_subscription_plan_details`, read-only, in `src/lib/paypal-toolkit.ts` |
 | Swapping products in an active refill after the agent's re-check | Subscriptions `POST /v1/billing/subscriptions/{id}/revise` with buyer approval, then plan verified |
 
 Runs against the PayPal **sandbox**: a demo store with illustrative prices and test money only.
@@ -76,7 +77,7 @@ The fit check and budget are plain code. The agent is there for what code can't 
 ## Tech
 
 - **AI:** Claude (`claude-opus-5-5`) via the Anthropic API with tool use (`search_products`, `check_fit`, `create_checkout`, `propose_refill`); also label reading and explanations.
-- **PayPal:** Orders v2, JS SDK Buttons, Catalog Products, Billing Plans, Subscriptions (sandbox).
+- **PayPal:** Agent Toolkit, Orders v2, Payments v2 refunds, JS SDK Buttons, Catalog Products, Billing Plans, Subscriptions (sandbox).
 - **YouCam (Perfect Corp):** AI Skin Analysis, Facial Color Tones, Skin Simulation, Makeup Virtual Try-On.
 - **Data:** [Open Beauty Facts](https://world.openbeautyfacts.org) for ingredient lists and product images (ODbL / CC BY-SA); EU Regulation 1223/2009 Annex III for the 26 fragrance allergens.
 - **App:** Next.js 15, TypeScript, Tailwind CSS.
