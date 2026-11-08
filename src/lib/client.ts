@@ -22,6 +22,8 @@ export interface SavedOrder {
   /** The agent's proposed refill cadence, offered until the shopper subscribes. */
   proposal?: { intervalWeeks: number; reason: string };
   subscription?: { id: string; token?: string; intervalWeeks: number; status: string; nextBilling?: string; planId?: string };
+  /** The newest skin scan the agent has already re-checked this refill against. */
+  checkedScanId?: string;
   /** Plan the shopper is moving the refill to, awaiting PayPal approval. */
   pendingRevision?: {
     planId: string;

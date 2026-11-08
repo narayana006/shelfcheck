@@ -15,7 +15,7 @@ People with sensitive, acne-prone or redness-prone skin buy skincare by trial an
 3. **Checks out with PayPal.** The agent creates a PayPal order (Orders v2). You approve it in PayPal Checkout, and the server captures it. Nothing is charged without you.
 4. **Never lets you run out.** The agent proposes a refill cadence ("the serum runs out first, in about 6 weeks"). Opt in with **PayPal Subscriptions**. The plan is built from your completed order and is cancellable anytime in PayPal.
 5. **Reacted? Refunded, and replaced.** If a product disagrees with your skin within 30 days, refund just that item through PayPal. If it's on auto-refill, the agent immediately finds a replacement and, once you approve, revises your PayPal subscription.
-6. **Re-checked before every refill.** Rescan (or, in the demo, "Simulate a re-scan 6 weeks later"), and the agent re-scores your routine against your new skin and proposes swaps.
+6. **Re-checked before every refill, without being asked.** The app reads the next bill date from PayPal (Agent Toolkit). In the week before a refill bills, a new skin scan starts the agent on its own: it reads the live subscription, re-scores your routine against your new skin and proposes swaps for you to approve in PayPal. (In the demo, "Simulate a re-scan 6 weeks later" adds the scan and moves the clock to two days before the real next bill.)
 7. **Plus:** barcode or label check for any product, the 26 EU-listed fragrance allergens flagged, skin simulation of your goal, shade match and makeup try-on.
 
 ## For judges (2 minutes)

@@ -142,9 +142,9 @@ function Recheck({
   const sub = order.subscription!;
   const excludeIds = Object.keys(order.refunded);
 
-  async function run(scores: ConcernScore[]) {
+  async function run(scores: ConcernScore[], scanId?: string, preface: string[] = []) {
     setRunning(true);
-    setSteps([]);
+    setSteps(preface);
     setResult(null);
     setError(null);
     setUsedScores(scores);
@@ -164,12 +164,42 @@ function Recheck({
           else setError(e.message);
         },
       );
+      if (scanId) onChange(updateOrder(order.orderId, (o) => ({ ...o, checkedScanId: scanId })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "The check failed.");
     } finally {
       setRunning(false);
     }
   }
+
+  // Pre-bill check, started by the app, not the shopper: when PayPal says the refill bills within
+  // a week and there's a skin scan the agent hasn't checked yet, the agent re-checks on its own.
+  const [laterScan, setLaterScan] = useState<{ id: string; scores: ConcernScore[] } | null>(null);
+  const [nextBill, setNextBill] = useState<{ days: number; date: string; price: number | null } | null>(null);
+  const newest = laterScan ?? (new Date(scan.takenAt) > new Date(order.paidAt) ? { id: scan.id, scores: scan.scores } : null);
+  useEffect(() => {
+    if (!sub.token || running || result) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/paypal/refill-status?subscription=${encodeURIComponent(sub.id)}`, {
+        headers: { "x-subscription-token": sub.token! },
+      }).catch(() => null);
+      const s = res?.ok ? ((await res.json()) as { status: string; nextBilling: string | null; pricePerRefill: number | null }) : null;
+      if (cancelled || !s?.nextBilling || s.status !== "ACTIVE") return;
+      // The 6-week demo jump moves "today" forward to two days before PayPal's next bill.
+      const now = laterScan ? new Date(s.nextBilling).getTime() - 2 * 86400000 : Date.now();
+      const days = Math.max(0, Math.ceil((new Date(s.nextBilling).getTime() - now) / 86400000));
+      const date = new Date(s.nextBilling).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      setNextBill({ days, date, price: s.pricePerRefill });
+      if (days <= 7 && newest && newest.id !== order.checkedScanId) {
+        run(newest.scores, newest.id, [
+          `PayPal says your refill bills in ${days} day${days === 1 ? "" : "s"} (${date}). Re-checking it against your newest scan, automatically`,
+        ]);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sub.id, sub.token, laterScan?.id, scan.id]);
 
   // A refund on a refilled routine immediately asks the agent to replace that product.
   useEffect(() => {
@@ -214,11 +244,18 @@ function Recheck({
             <RefreshCw className="h-4 w-4" strokeWidth={2} aria-hidden /> Re-check my refill
           </Button>
           {scan.sample && (
-            <Button variant="secondary" onClick={() => run(sampleScores("later"))}>
+            <Button variant="secondary" onClick={() => setLaterScan({ id: `later-${Date.now()}`, scores: sampleScores("later") })}>
               Simulate a re-scan 6 weeks later
             </Button>
           )}
         </div>
+      )}
+      {!running && !result && nextBill && (
+        <p className="text-[14px] text-muted">
+          {laterScan ? "6 weeks later: new skin scan saved. " : ""}Next refill {nextBill.date}
+          {nextBill.price !== null ? ` · $${nextBill.price.toFixed(2)}` : ""}, read from PayPal. In the week before it bills, ShelfCheck
+          re-checks your routine against your newest scan on its own.
+        </p>
       )}
       {(running || steps.length > 0) && (
         <Trace steps={steps} running={running} title="Before your next refill" runningLabel="Re-checking your routine…" />
@@ -301,6 +338,8 @@ export function OrderCard({
   }
 
   /** Confirm PayPal moved the subscription to the new plan, then update the saved routine. */
+  const [revised, setRevised] = useState<{ total: number; nextBilling?: string } | null>(null);
+  const [revisions, setRevisions] = useState(0);
   async function verifyRevision() {
     if (!order.subscription || !order.pendingRevision) return;
     setVerifying(true);
@@ -323,6 +362,13 @@ export function OrderCard({
           pendingRevision: undefined,
         })),
       );
+      const items = order.items.map((i) => {
+        const swap = pending.swaps?.find((sw) => sw.fromId === i.productId);
+        return swap ? { ...swap.toItem, quantity: i.quantity } : i;
+      });
+      setRevised({ total: items.reduce((n, i) => n + i.price * i.quantity, 0), nextBilling: s.nextBilling });
+      // Close the finished re-check so the change can't be submitted twice.
+      setRevisions((n) => n + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't verify with PayPal.");
     } finally {
@@ -422,7 +468,16 @@ export function OrderCard({
           </div>
           {order.subscription.status === "ACTIVE" && (
             <div className="mt-5">
-              <Recheck key={recheckAfterRefund} order={order} scan={scan} autoStart={recheckAfterRefund > 0} onChange={onChange} />
+              {revised && (
+                <p className="rise mb-4 flex items-start gap-2 rounded-2xl bg-sage p-4 text-[15px]">
+                  <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-good" strokeWidth={2} aria-hidden />
+                  <span>
+                    <strong>Refill updated in PayPal.</strong> PayPal confirmed the new plan: ${revised.total.toFixed(2)} per refill
+                    {revised.nextBilling ? `, next on ${shortDate(revised.nextBilling)}` : ""}.
+                  </span>
+                </p>
+              )}
+              <Recheck key={`${recheckAfterRefund}-${revisions}`} order={order} scan={scan} autoStart={recheckAfterRefund > 0 && revisions === 0} onChange={onChange} />
             </div>
           )}
           {order.pendingRevision && (

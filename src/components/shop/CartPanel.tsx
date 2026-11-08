@@ -28,7 +28,7 @@ export function CartPanel({ cart, clientId, onPaid }: { cart: Cart; clientId: st
     <div className="grid gap-4">
       <section className="rise rounded-[28px] bg-surface p-6 sm:p-8">
         <Eyebrow>Your skin-matched cart</Eyebrow>
-        <CardTitle>{cart.items.length} products, chosen for your scan</CardTitle>
+        <CardTitle>{cart.items.length} {cart.items.length === 1 ? "product" : "products"}, chosen for your scan</CardTitle>
         <p className="mt-3 text-[17px] leading-snug text-muted text-pretty">{cart.summary}</p>
 
         <ul className="mt-6 grid gap-3">

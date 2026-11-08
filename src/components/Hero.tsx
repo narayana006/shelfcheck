@@ -5,9 +5,9 @@ import { Button } from "./ui";
 /** A real cart the agent produced for the sample skin profile. */
 const DEMO_CART = [
   { category: "Cleanser", name: "Cetaphil Gentle Skin Cleanser", great: true },
-  { category: "Serum", name: "Niacinamide 10% Serum", great: true },
-  { category: "Moisturizer", name: "Eucerin Aquaphor", great: false },
-  { category: "Sunscreen", name: "Photoderm Max SPF 50+", great: false },
+  { category: "Serum", name: "The Ordinary Hyaluronic Acid 2% + B5", great: false },
+  { category: "Moisturizer", name: "CeraVe PM Facial Moisturizing Lotion", great: true },
+  { category: "Sunscreen", name: "Bioderma Photoderm Max Aquafluide SPF 50+", great: false },
 ];
 
 const BANDS = [
@@ -154,7 +154,7 @@ export function Hero({ onScan, onSample }: { onScan: () => void; onSample: () =>
                   ))}
                 </ul>
                 <p className="mt-1 flex items-center gap-1.5 text-[13px] text-[#6e6e73]">
-                  <X className="h-3.5 w-3.5 text-[#c4000f]" strokeWidth={2.5} aria-hidden /> Ruled out 8 products that aggravate
+                  <X className="h-3.5 w-3.5 text-[#c4000f]" strokeWidth={2.5} aria-hidden /> Ruled out 9 products that aggravate
                   redness
                 </p>
                 <div className="mt-4 rounded-full bg-[#ffc439] py-3 text-center text-[15px] font-semibold text-[#003087]">
