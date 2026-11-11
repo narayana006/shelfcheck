@@ -1,7 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import * as z from "zod/v4";
 import { rateLimited, tooMany } from "@/lib/limit";
-import { runRecheck, type RecheckEvent } from "@/lib/recheck";
+import { refillStatus } from "@/lib/paypal-toolkit";
+import { paypalSays, runRecheck, type RecheckEvent } from "@/lib/recheck";
+import { replayStore } from "@/lib/replay";
 import { ScoresSchema } from "@/lib/schemas";
 import { verify } from "@/lib/sign";
 
@@ -42,8 +44,25 @@ export async function POST(request: Request) {
       const emit = (e: RecheckEvent) => {
         if (!abort.signal.aborted) controller.enqueue(encoder.encode(JSON.stringify(e) + "\n"));
       };
+      // Local recording aid only (off in production): replay a saved agent run.
+      const { lines, scores, excludeIds } = parsed.data;
+      const rec = replayStore<RecheckEvent>("recheck", { lines, scores, excludeIds });
       try {
-        emit({ type: "result", result: await runRecheck(parsed.data.lines, parsed.data.scores, emit, parsed.data.excludeIds, abort.signal, subscriptionId) });
+        if (rec?.cached) {
+          // The PayPal read stays live: only the model's reasoning is replayed.
+          await rec.replay(
+            emit,
+            async (e) =>
+              e.type === "step" && e.text.startsWith("PayPal says:") && subscriptionId
+                ? { type: "step", text: paypalSays(await refillStatus(subscriptionId)) }
+                : e,
+            abort.signal,
+          );
+          return;
+        }
+        const out = rec ? rec.tap(emit) : emit;
+        out({ type: "result", result: await runRecheck(lines, scores, out, excludeIds, abort.signal, subscriptionId) });
+        rec?.save();
       } catch (e) {
         console.error(e);
         const message =

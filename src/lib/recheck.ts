@@ -47,6 +47,13 @@ How to work:
 - Call propose_routine once with the full routine (swapped and kept products). If nothing needs to change, propose the same routine with no swaps and say so.
 - Each swap reason is one sentence naming the new scan's concern and score and the ingredient that matters.`;
 
+/** The trace line for the refill as PayPal reports it. */
+export function paypalSays(s: Awaited<ReturnType<typeof refillStatus>>) {
+  const when = s.nextBilling ? new Date(s.nextBilling).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "not scheduled";
+  const price = s.pricePerRefill !== null ? `$${s.pricePerRefill.toFixed(2)}` : "unknown price";
+  return `PayPal says: refill ${s.status.toLowerCase()}, next bill ${when}, ${price}${s.everyWeeks ? ` every ${s.everyWeeks} weeks` : ""}`;
+}
+
 export async function runRecheck(
   current: RoutineLine[],
   scores: ConcernScore[],
@@ -94,9 +101,7 @@ export async function runRecheck(
       emit({ type: "step", text: "Reading your refill in PayPal" });
       try {
         const s = await refillStatus(subscriptionId!);
-        const when = s.nextBilling ? new Date(s.nextBilling).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "not scheduled";
-        const price = s.pricePerRefill !== null ? `$${s.pricePerRefill.toFixed(2)}` : "unknown price";
-        emit({ type: "step", text: `PayPal says: refill ${s.status.toLowerCase()}, next bill ${when}, ${price}${s.everyWeeks ? ` every ${s.everyWeeks} weeks` : ""}` });
+        emit({ type: "step", text: paypalSays(s) });
         return JSON.stringify(s);
       } catch (e) {
         emit({ type: "step", text: "Couldn't reach PayPal for the refill details. Checking the routine anyway" });
